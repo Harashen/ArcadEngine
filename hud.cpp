@@ -1,216 +1,211 @@
 #include <boost/format.hpp>
 
-#include "hud.h"
-#include "player.h"
-#include "rect.h"
-#include "script.h"
-#include "storyboard.h"
-#include "utils.h"
-#include "video.h"
+#include "hud.hpp"
+#include "player.hpp"
+#include "rect.hpp"
+#include "script.hpp"
+#include "storyboard.hpp"
+#include "utils.hpp"
+#include "video.hpp"
 
 using namespace boost;
 
 
 /* HUD handler */
-CHud *pHud = NULL;
+Hud *gpHud = NULL;
 
 
-bool CHud::LoadSettings(string filepath)
+bool Hud::LoadSettings(string filepath)
 {
-	CScript Script;
+    Script script;
 
-	Uint16 size;
-	string fontPath;
-	bool   ret;
+    Uint16 size;
+    string fontPath;
+    bool   ret;
 
-	/* Load script */
-	ret = Script.Load(filepath + "hud.ini");
-	if (!ret)
-		return false;
+    /* Load script */
+    ret = script.Load(filepath + "hud.ini");
+    if (!ret) return false;
 
-	/* Get font values */
-	fontPath = Script.GetString("Font");
-	size     = Script.GetValue<Uint16>("Size");
-	
-	/* Load HUD font */
-	ret = Font.Load(filepath + fontPath, size);
-	if (!ret)
-		return false;
-		
-	/* Set score attributes */
-    ScoreRect.SetX( Script.GetValue<float>("Score.PosX") );
-    ScoreRect.SetY( Script.GetValue<float>("Score.PosY") );
-    ScoreColor = Script.GetColor("Score.Color");
+    /* Get font values */
+    fontPath = script.GetString("Font");
+    size     = script.GetValue<Uint16>("Size");
+    
+    /* Load HUD font */
+    ret = mFont.Load(filepath + fontPath, size);
+    if (!ret) return false;
+        
+    /* Set score attributes */
+    mScoreRect.SetX(script.GetValue<float>("Score.PosX"));
+    mScoreRect.SetY(script.GetValue<float>("Score.PosY"));
+    mScoreColor = script.GetColor("Score.Color");
     
     /* Set highscore attributes */
-    HighScoreRect.SetX( Script.GetValue<float>("HighScore.PosX") );
-    HighScoreRect.SetY( Script.GetValue<float>("HighScore.PosY") );
-    HighScoreColor = Script.GetColor("HighScore.Color");
+    mHighScoreRect.SetX(script.GetValue<float>("HighScore.PosX"));
+    mHighScoreRect.SetY(script.GetValue<float>("HighScore.PosY"));
+    mHighScoreColor = script.GetColor("HighScore.Color");
     
     /* Set FPS attributes */
-    FpsRect.SetX( Script.GetValue<float>("Fps.PosX") );
-    FpsRect.SetY( Script.GetValue<float>("Fps.PosY") );
-    FpsColor = Script.GetColor("Fps.Color");
+    mFpsRect.SetX(script.GetValue<float>("Fps.PosX"));
+    mFpsRect.SetY(script.GetValue<float>("Fps.PosY"));
+    mFpsColor = script.GetColor("Fps.Color");
     
     /* Set lives attributes */
-    LivesRect.SetX( Script.GetValue<float>("Lives.PosX") );
-    LivesRect.SetY( Script.GetValue<float>("Lives.PosY") );
-    LivesColor = Script.GetColor("Lives.Color");
+    mLivesRect.SetX(script.GetValue<float>("Lives.PosX"));
+    mLivesRect.SetY(script.GetValue<float>("Lives.PosY"));
+    mLivesColor = script.GetColor("Lives.Color");
     
     /* Set text attributes */
-    TextRect.SetX( Script.GetValue<float>("Text.PosX") );
-    TextRect.SetY( Script.GetValue<float>("Text.PosY") );
-    TextColor = Script.GetColor("Text.Color");
+    mTextRect.SetX(script.GetValue<float>("Text.PosX"));
+    mTextRect.SetY(script.GetValue<float>("Text.PosY"));
+    mTextColor = script.GetColor("Text.Color");
     
     /* Set press attributes */
-    PressRect.SetX( Script.GetValue<float>("Press.PosX") );
-    PressRect.SetY( Script.GetValue<float>("Press.PosY") );
-
-	return true;
+    mPressRect.SetX(script.GetValue<float>("Press.PosX"));
+    mPressRect.SetY(script.GetValue<float>("Press.PosY"));
+    
+    return true;
 }
 
-bool CHud::Init(string filepath)
+bool Hud::Init(string filepath)
 {
-	ScreenColor.r = 0;
-    ScreenColor.g = 0;
-    ScreenColor.b = 0;
-	
-	/* Load settings */
-	return LoadSettings(filepath);
+    mScreenColor.r = 0;
+    mScreenColor.g = 0;
+    mScreenColor.b = 0;
+    
+    /* Load settings */
+    return LoadSettings(filepath);
 }
 
-void CHud::SetActive(void)
+void Hud::SetActive(void)
 {
-	/* Set active HUD */
-	pHud = this;
+    /* Set active HUD */
+    gpHud = this;
 }
 
-void CHud::SetScreen(Sint32 width, Sint32 height)
+void Hud::SetScreen(Sint32 width, Sint32 height)
 {
-	/* Set screen rect */
-	ScreenRect.Set(0, 0, width, height);
-	
-	Font.SetScreen(width, height);
+    /* Set screen rect */
+    mScreenRect.Set(0, 0, width, height);
+    
+    mFont.SetScreen(width, height);
 }
 
-bool CHud::DrawString(string text, SDL_Color Color, CRect Rect, bool center)
+bool Hud::DrawString(string text, SDL_Color color, Rect rect, bool center)
 {
-	/* Render string */
-	return Font.Render(Color, text, Rect.GetX(), Rect.GetY(), center);
+    /* Render string */
+    return mFont.Render(color, text, rect.GetX(), rect.GetY(), center);
 }
 
-bool CHud::DrawScore(void)
+bool Hud::DrawScore(void)
 {
-	string text;
-
-	/* Generate string */
-	text = str(format("Score %07d") % pPlayer->GetScore());
-
-	/* Draw Score */
-	return DrawString(text, ScoreColor, ScoreRect);
-}
-
-bool CHud::DrawHighScore(void)
-{
-	string text;
-
-	/* Generate string */
-	text = str(format("Highscore %07d") % pStory->GetPoints());
-
-	/* Draw Highscore */
-	return DrawString(text, HighScoreColor, HighScoreRect);
-}
-
-bool CHud::DrawFps(void)
-{
-	string text;
-
-	/* Generate string */
-	text = str(format("%.2f FPS") % pVideo->GetFps());
-
-	/* Draw FPS */
-	return DrawString(text, FpsColor, FpsRect);
-}
-
-bool CHud::DrawLives(void)
-{
-	string text;
-
-	/* Generate string */
-	text = str(format("Lives %s") % pPlayer->GetLives());
-
-	/* Draw player lives */
-	return DrawString(text, LivesColor, LivesRect);
-}
-
-bool CHud::DrawPoints(float alpha)
-{
-	CRect  Rect = TextRect;
-	Uint32 temp = pStory->GetPoints() * pPlayer->GetLives();
-    Uint16 size = Font.Size;
     string text;
-	bool   ret;
+
+    /* Generate string */
+    text = str(format("Score %07d") % gpPlayer->GetScore());
+
+    /* Draw Score */
+    return DrawString(text, mScoreColor, mScoreRect);
+}
+
+bool Hud::DrawHighScore(void)
+{
+    string text;
+
+    /* Generate string */
+    text = str(format("Highscore %07d") % gpStory->GetPoints());
+
+    /* Draw Highscore */
+    return DrawString(text, mHighScoreColor, mHighScoreRect);
+}
+
+bool Hud::DrawFps(void)
+{
+    string text;
+
+    /* Generate string */
+    text = str(format("%.2f FPS") % gpVideo->GetFps());
+
+    /* Draw FPS */
+    return DrawString(text, mFpsColor, mFpsRect);
+}
+
+bool Hud::DrawLives(void)
+{
+    string text;
+
+    /* Generate string */
+    text = str(format("Lives %s") % gpPlayer->GetLives());
+
+    /* Draw player lives */
+    return DrawString(text, mLivesColor, mLivesRect);
+}
+
+bool Hud::DrawPoints(float alpha)
+{
+    Rect   rect = mTextRect;
+    Uint32 temp = gpStory->GetPoints() * gpPlayer->GetLives();
+    Uint16 size = mFont.mSize;
+    string text;
+    bool   ret;
     
-	/* Draw background */
-    ScreenRect.Draw(ScreenColor, alpha);
+    /* Draw background */
+    mScreenRect.Draw(mScreenColor, alpha);
     
-	/* Generate string */
+    /* Generate string */
     text = str(format("Points X Life")  );
-    Rect.SetY(Rect.GetY() + size);
-	
-	/* Draw string */
-    ret = DrawString(text, TextColor, Rect, true);
-    if (!ret)
-        return false;
+    rect.SetY(rect.GetY() + size);
     
-	/* Generate string */
-    text = str(format("%d X %d = %d") % pStory->GetPoints() % pPlayer->GetLives() % temp );
-    Rect.SetY(Rect.GetY() - size);
-	
-	/* Draw string */
-    ret = DrawString(text, TextColor, Rect, true);
-    if (!ret)
-        return false;
+    /* Draw string */
+    ret = DrawString(text, mTextColor, rect, true);
+    if (!ret) return false;
     
-	/* Generate string */
-    text = str(format("Total score: %03d") % pPlayer->GetScore() );
-    Rect.SetY(Rect.GetY() - size);
-	
-	/* Draw string */
-    ret = DrawString(text, TextColor, Rect, true);
-    if (!ret)
-        return false;
+    /* Generate string */
+    text = str(format("%d X %d = %d") % gpStory->GetPoints() % gpPlayer->GetLives() % temp );
+    rect.SetY(rect.GetY() - size);
+    
+    /* Draw string */
+    ret = DrawString(text, mTextColor, rect, true);
+    if (!ret) return false;
+    
+    /* Generate string */
+    text = str(format("Total score: %03d") % gpPlayer->GetScore());
+    rect.SetY(rect.GetY() - size);
+    
+    /* Draw string */
+    ret = DrawString(text, mTextColor, rect, true);
+    if (!ret) return false;
         
     return true;
 }
 
-bool CHud::DrawText(string text, float alpha)
+bool Hud::DrawText(string text, float alpha)
 {
-	/* Draw background */
-	ScreenRect.Draw(ScreenColor, alpha);
+    /* Draw background */
+    mScreenRect.Draw(mScreenColor, alpha);
 
-	/* Draw text */
-	return DrawString(text, TextColor, TextRect, true);
+    /* Draw text */
+    return DrawString(text, mTextColor, mTextRect, true);
 }
 
-bool CHud::DrawPress(void)
+bool Hud::DrawPress(void)
 {
-	string text;
+    string text;
 
-	/* Generate string */
-	text = str(format("Press any key to continue"));
+    /* Generate string */
+    text = str(format("Press any key to continue"));
 
-	/* Draw press text */
-	return DrawString(text, TextColor, PressRect, true);
+    /* Draw press text */
+    return DrawString(text, mTextColor, mPressRect, true);
 }
 
-bool CHud::DrawCredits(Uint16 credits)
+bool Hud::DrawCredits(Uint16 credits)
 {
-	string text;
+    string text;
 
-	/* Generate string */
-	text = str(format("Credits %s") % credits);
+    /* Generate string */
+    text = str(format("Credits %s") % credits);
 
-	/* Draw actual credits */
-	return DrawString(text, TextColor, PressRect, true);
+    /* Draw actual credits */
+    return DrawString(text, mTextColor, mPressRect, true);
 }

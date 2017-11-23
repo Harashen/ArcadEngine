@@ -1,78 +1,82 @@
-#include "animation.h"
+#include "animation.hpp"
 
 
-CAnimation::CAnimation(void)
+Animation::Animation(void)
 {
-	/* Initialize variables */
-	Frames        = 0;
-	FrameRate     = 101;
-	CurrFrame     = 0;
-	CurrAnimation = 0;
-	Oscillate     = false;
+    /* Initialize variables */
+    mFrames        = 0;
+    mFrameRate     = 101;
+    mCurrFrame     = 0;
+    mCurrAnimation = 0;
+    mOscillate     = false;
 
-	/* Reset animation */
-	Reset();
+    /* Reset animation */
+    Reset();
 }
 
-void CAnimation::Reset(void)
+void Animation::Reset(void)
 {
-	/* Reset variables */
-	FrameInc = 1;
-	OldTime  = 0;
+    /* Reset variables */
+    mFrameInc = 1;
+    mOldTime  = 0;
 }
 
-void CAnimation::ResetFrame(void)
+void Animation::ResetFrame(void)
 {
-	/* Reset current frame */
-    CurrFrame = 0;
+    /* Reset current frame */
+    mCurrFrame = 0;
 }
 
-void CAnimation::Update(bool idle)
+void Animation::Update(bool idle)
 {
-	/* Animation idle */
-	if (idle)
-		return;
+    /* Animation idle */
+    if (idle) return;
 
-	Uint32 ticks = SDL_GetTicks();
+    Uint32 ticks = SDL_GetTicks();
 
-	/* Keep current frame */
-	if ((OldTime + FrameRate) > ticks)
-		return;
+    /* Keep current frame */
+    if ((mOldTime + mFrameRate) > ticks) {
+        return;
+    }
 
-	/* Set time */
-	OldTime = ticks;
+    /* Set time */
+    mOldTime = ticks;
 
-	/* Select next frame */
-	CurrFrame += FrameInc;
+    /* Select next frame */
+    mCurrFrame += mFrameInc;
 
-	/* Animation oscillation */
-	if (Oscillate) {
-		/* Modify increment */
-		if ((FrameInc > 0) && (CurrFrame >= (Frames - 1)))
-			FrameInc = -FrameInc;
-		if ((FrameInc < 0) && (CurrFrame <= 0))
-			FrameInc = -FrameInc;
-	}
+    /* Animation oscillation */
+    if (mOscillate) {
+        /* Modify increment */
+        if ((mFrameInc > 0) && (mCurrFrame >= (mFrames - 1))) {
+            mFrameInc = -mFrameInc;
+        }
 
-	/* Check limit */
-	if (CurrFrame >= Frames)
-		ResetFrame();
+        if ((mFrameInc < 0) && (mCurrFrame <= 0)) {
+            mFrameInc = -mFrameInc;        
+        }
+    }
+
+    /* Check limit */
+    if (mCurrFrame >= mFrames) {
+        ResetFrame();
+    }
 }
 
-Uint32 CAnimation::GetAnimation(void)
+Uint32 Animation::GetAnimation(void)
 {
-	/* Get current animation */
-    return CurrAnimation;
+    /* Get current animation */
+    return mCurrAnimation;
 }
 
-void CAnimation::SetOscillate(bool value)
+void Animation::SetOscillate(bool value)
 {
-	/* Set oscillate */
-    Oscillate = value;
+    /* Set oscillate */
+    mOscillate = value;
 }
 
-void CAnimation::SetAnimation(Uint32 value)
+void Animation::SetAnimation(Uint32 value)
 {
-	/* Set current animation */
-    CurrAnimation = value;
+    /* Set current animation */
+    mCurrAnimation = value;
 }

@@ -1,82 +1,80 @@
-#include "weapon.h"
+#include "weapon.hpp"
 
 
-CWeapon::CWeapon(void)
+Weapon::Weapon(void)
 {
-	/* Set attributes */
-	Type   = "Weapon";
-	Motion = ENTITY_UP;
-	State  = ENTITY_DEAD;
-	Show   = false;
+    /* Set attributes */
+    mType   = "Weapon";
+    mMotion = ENTITY_UP;
+    mState  = ENTITY_DEAD;
+    mShow   = false;
 }
 
-void CWeapon::Collision(CEntity *Entity, Uint32 &col)
+void Weapon::Collision(Entity *entity, Uint32 &col)
 {
-	string type = Entity->GetType();
+    string type = entity->GetType();
 
-	/* Default handler */
-	CEntity::Collision(Entity, col);
+    /* Default handler */
+    Entity::Collision(entity, col);
 
-	/* Collision with item/player */
-	if (!type.compare("Item") || !type.compare("Player")) {
-		/* Ignore collision */
-		col = 0;
-	}
+    /* Collision with item/player */
+    if (!type.compare("Item") || !type.compare("Player")) {
+        /* Ignore collision */
+        col = 0;
+    }
 
-	/* Kill bullet */
-	if (col) {
-		Show = false;
-		Kill();
-		Sound.Stop();
-	}
+    /* Kill bullet */
+    if (col) {
+        mShow = false;
+        Kill();
+        mSound.Stop();
+    }
 }
 
-bool CWeapon::Shot(CRect Rect, bool sound)
+bool Weapon::Shot(Rect rect, bool sound)
 {
-	/* One shot */
-	if (!(State & ENTITY_DEAD))
-		return false;
-		
-	float x = Rect.GetX() + (Rect.GetWidth() * 0.5);
-	float y = Rect.GetY() + 5;
-	
-	/* Set start */
-	SetStart(x, y);
-	
-	/* Shot */
-	ResetRect();
-	Show  = true;
-	State = ENTITY_WALK;
-	
-	/* Start motion */
-	Run();
-	
-	if (sound)
-		Sound.Play(0);
-		
-	return true;
+    /* One shot */
+    if (!(mState & ENTITY_DEAD)) return false;
+        
+    float x = rect.GetX() + (rect.GetWidth() * 0.5);
+    float y = rect.GetY() + 5;
+    
+    /* Set start */
+    SetStart(x, y);
+    
+    /* Shot */
+    ResetRect();
+    mShow  = true;
+    mState = ENTITY_WALK;
+    
+    /* Start motion */
+    Run();
+    
+    if (sound) mSound.Play(0);
+        
+    return true;
 }
 
-bool CWeapon::Update(void)
+bool Weapon::Update(void)
 {
-	if (!Show)
-		return false;
-	
-	CEntity::Update();
-	
-	return true;
+    if (!mShow)	return false;
+    
+    Entity::Update();
+    
+    return true;
 }
 
-bool CWeapon::Draw(void)
+bool Weapon::Draw(void)
 {
-	if (!Show || (State & ENTITY_DEAD))
-		return false;
-	
-	/* Update animation */	
-	Animation.Update(false);
-	
-	/* Draw Animation */
-	Animation.Draw(NULL, &Rect);
-	
-	return true;
+    if (!mShow || (mState & ENTITY_DEAD)) {
+        return false;
+    }
+    
+    /* Update animation */	
+    mAnimation.Update(false);
+    
+    /* Draw Animation */
+    mAnimation.Draw(NULL, &mRect);
+    
+    return true;
 }

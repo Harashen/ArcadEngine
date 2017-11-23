@@ -1,137 +1,134 @@
 #include <cmath>
+
 #include <boost/format.hpp>
 
-#include "collision.h"
-#include "entity.h"
-#include "level.h"
-#include "utils.h"
-#include "video.h"
+#include "entity.hpp"
+#include "collision.hpp"
+#include "level.hpp"
+#include "utils.hpp"
+#include "video.hpp"
 
 using namespace boost;
 
 
-CEntity::CEntity(void)
+Entity::Entity(void)
 {
-	/* Default type */
-	Type = "Entity";
+    /* Default type */
+    mType = "Entity";
 
-	/* Initialize variables */
-	CollisionRect = 0;
-	StartX        = 0.0;
-	StartY        = 0.0;
-	Points		  = 0;
-	Collidable    = false;
-	Loaded        = false;
-	noGravity     = false;
-	
-	EntityNumber  = 0;
-	Id	          = 0;
-	
-	State  = ENTITY_IDLE;
-	Motion = ENTITY_INACTIVE;
+    /* Initialize variables */
+    mCollisionRect = 0;
+    mStartX        = 0.0;
+    mStartY        = 0.0;
+    mPoints	       = 0;
+    mCollidable    = false;
+    mLoaded        = false;
+    mNoGravity     = false;	
+    mEntityNumber  = 0;
+    mId            = 0;
+    
+    mState  = ENTITY_IDLE;
+    mMotion = ENTITY_INACTIVE;
 }
 
-CEntity::~CEntity(void)
+Entity::~Entity(void)
 {
-	/* Unload */
-	Unload();
-	
-	/* Unset loaded */
-	Loaded = false;
+    /* Unload */
+    Unload();
+    
+    /* Unset loaded */
+    mLoaded = false;
 }
 
-bool CEntity::LoadSettings(const char *filepath)
+bool Entity::LoadSettings(const char *filepath)
 {
-	CScript Script;
-	bool    ret;
-	string  sound;
+    Script script;
+    bool   ret;
+    string sound;
 
-	/* Load script */
-	ret = Script.Load(filepath);
-	if (!ret)
-		return false;
-		
-	/* Set name */
-	Name = Script.GetString("Name");
+    /* Load script */
+    ret = script.Load(filepath);
+    if (!ret) return false;
+        
+    /* Set name */
+    mName = script.GetString("Name");
 
-	/* Set dimensions */
-	Width  = Script.GetValue<Uint16>("Width");
-	Height = Script.GetValue<Uint16>("Height");
-	
-	/* Initial position */
-	StartX = Script.GetValue<float>("StartX");
-	StartY = Script.GetValue<float>("StartY");
+    /* Set dimensions */
+    mWidth  = script.GetValue<Uint16>("Width");
+    mHeight = script.GetValue<Uint16>("Height");
+    
+    /* Initial position */
+    mStartX = script.GetValue<float>("StartX");
+    mStartY = script.GetValue<float>("StartY");
+    
+    /* Set sprite */
+    mSprite = script.GetString("Sprite");
+        
+    /* Set speed */
+    mSpeed = script.GetValue<float>("Speed");
 
-	/* Set sprite */
-	Sprite = Script.GetString("Sprite");
-		
-	/* Set speed */
-	Speed = Script.GetValue<float>("Speed");
+    /* Set acceleration */
+    mAccelX = script.GetValue<float>("AccelX");
+    mAccelY = script.GetValue<float>("AccelY");
 
-	/* Set acceleration */
-	AccelX = Script.GetValue<float>("AccelX");
-	AccelY = Script.GetValue<float>("AccelY");
-
-	/* Set animation */
-	bool oscillate = Script.GetBool("Oscillate");
-	Animation.SetOscillate(oscillate);
-	
-	/* Set if gravity affects entity */
-	noGravity = Script.GetBool("Gravity");
-	
-	/* Motion values */
-	AniMap[ENTITY_LEFT]  = Script.GetValue<Uint16>("Left");
-    AniMap[ENTITY_RIGHT] = Script.GetValue<Uint16>("Right");
-    AniMap[ENTITY_UP]    = Script.GetValue<Uint16>("Up");
-    AniMap[ENTITY_DOWN]  = Script.GetValue<Uint16>("Down");
-    AniMap[ENTITY_STOP]  = Script.GetValue<Uint16>("Stop");
-	
-	/* Load sound */
-	sound = Script.GetString("Sound");
-	if (!sound.empty())
-		Sound.Load(Basepath + sound);
-	
-	/* Set points */
-	Points = Script.GetValue<Uint32>("Points");
-	
-	/* Set attributes */
-	Collidable = Script.GetBool("Collidable");
-	
-	/* Load collisions */
-	ret = LoadCollisions(Script);
-	if (!ret)
-		return false;
-	
-	return true;
+    /* Set animation */
+    bool oscillate = script.GetBool("Oscillate");
+    mAnimation.SetOscillate(oscillate);
+    
+    /* Set if gravity affects entity */
+    mNoGravity = script.GetBool("Gravity");
+    
+    /* Motion values */
+    mAniMap[ENTITY_LEFT]  = script.GetValue<Uint16>("Left");
+    mAniMap[ENTITY_RIGHT] = script.GetValue<Uint16>("Right");
+    mAniMap[ENTITY_UP]    = script.GetValue<Uint16>("Up");
+    mAniMap[ENTITY_DOWN]  = script.GetValue<Uint16>("Down");
+    mAniMap[ENTITY_STOP]  = script.GetValue<Uint16>("Stop");
+    
+    /* Load sound */
+    sound = script.GetString("Sound");
+    if (!sound.empty())	mSound.Load(mBasepath + sound);
+    
+    /* Set points */
+    mPoints = script.GetValue<Uint32>("Points");
+    
+    /* Set attributes */
+    mCollidable = script.GetBool("Collidable");
+    
+    /* Load collisions */
+    ret = LoadCollisions(script);
+    if (!ret) return false;
+    
+    return true;
 }
 
-bool CEntity::LoadCollisions(CScript Script)
+bool Entity::LoadCollisions(Script script)
 {
-    CollisionRect = Script.GetValue<Uint16>("Collisions");
+    mCollisionRect = script.GetValue<Uint16>("Collisions");
     
     /* No collision rectangles */
-    if (!CollisionRect) {
-        CRect *Rect = new CRect;
+    if (!mCollisionRect) {
+        Rect *rect = new Rect;
         
         // Si no se ha creado el rectángulo
-        if (!Rect)
-            return false;
+        if (!rect) return false;
         
-        Collisions.push_back(Rect);
+        mCollisions.push_back(rect);
         
-        Rect->SetX(0);
-		Rect->SetY(0);
-		Rect->SetInitialX(0);
-		Rect->SetInitialY(0);
-		Rect->SetWidth(Width);
-		Rect->SetHeight(Height);
-    }
-    else {
-        for (Uint16 i = 0; i < CollisionRect; i++) {
-            CRect *Rect = NULL;
+        rect->SetX(0);
+        rect->SetY(0);
+        rect->SetInitialX(0);
+        rect->SetInitialY(0);
+        rect->SetWidth(mWidth);
+        rect->SetHeight(mHeight);
+    } else {
+        for (Uint16 i = 0; i < mCollisionRect; i++) {
+            Rect *rect = NULL;
             string suffix;
-            Sint32 w, h;
-            float  x, y;
+            Sint32 w;
+            Sint32 h;
+            float  x;
+            float  y;
             
             /* Initialize values */
             w = h = 0;
@@ -139,433 +136,458 @@ bool CEntity::LoadCollisions(CScript Script)
             
             suffix = str(format("[%d]") % i);
             
-            Rect = new CRect;
+            rect = new Rect;
             
-            if (!Rect)
-                continue;
+            if (!rect) continue;
             
-            Collisions.push_back(Rect);
+            mCollisions.push_back(rect);
             
-			/* Get attributes */
-            w = Script.GetValue<Sint32>("Width" + suffix);
-            h = Script.GetValue<Sint32>("Height" + suffix);
-            x = Script.GetValue<Sint32>("X" + suffix);
-            y = Script.GetValue<Sint32>("Y" + suffix);
+            /* Get attributes */
+            w = script.GetValue<Sint32>("Width" + suffix);
+            h = script.GetValue<Sint32>("Height" + suffix);
+            x = script.GetValue<Sint32>("X" + suffix);
+            y = script.GetValue<Sint32>("Y" + suffix);
             
-			/* Set rectangle */
-            Rect->SetX(x);
-            Rect->SetY(y);
-            Rect->SetInitialX(x);
-            Rect->SetInitialY(y);
-            Rect->SetWidth(w);
-            Rect->SetHeight(h);
+            /* Set rectangle */
+            rect->SetX(x);
+            rect->SetY(y);
+            rect->SetInitialX(x);
+            rect->SetInitialY(y);
+            rect->SetWidth(w);
+            rect->SetHeight(h);
         }
     }
     
     return true;
 }
 
-void CEntity::Reset(void)
+void Entity::Reset(void)
 {
-	/* Set direction */
-	Motion = DEFAULT;
+    /* Set direction */
+    mMotion = DEFAULT;
 
-	/* Set force/acceleration */
-	ForceX = 0.0;
-	ForceY = 0.0;
-	AccelX = 0.0;
-	AccelY = 0.0;
-	
-	/* Set speed */
-	SpeedX = 0.0;
-	SpeedY = 0.0;
+    /* Set force/acceleration */
+    mForceX = 0.0;
+    mForceY = 0.0;
+    mAccelX = 0.0;
+    mAccelY = 0.0;
+    
+    /* Set speed */
+    mSpeedX = 0.0;
+    mSpeedY = 0.0;
 
-	/* Set position */
-	Rect.SetX(StartX);
-	Rect.SetY(StartY);
-	
-	/* Set state */
-	State = ENTITY_IDLE;
+    /* Set position */
+    mRect.SetX(mStartX);
+    mRect.SetY(mStartY);
+    
+    /* Set state */
+    mState = ENTITY_IDLE;
 
-	/* Reset animation */
-	Animation.Reset();
+    /* Reset animation */
+    mAnimation.Reset();
 }
 
-bool CEntity::Load(const char *filepath)
+bool Entity::Load(const char *filepath)
 {
-	bool ret;
+    bool ret;
 
-	/* Load settings */
-	ret = LoadSettings(filepath);
-	if (!ret)
-		return false;
+    /* Load settings */
+    ret = LoadSettings(filepath);
+    if (!ret) return false;
 
-	/* Load animation */
-	ret = Animation.Load(Basepath + Sprite, Width, Height);
-	if (!ret)
-		return false;
+    /* Load animation */
+    ret = mAnimation.Load(mBasepath + mSprite, mWidth, mHeight);
+    if (!ret) return false;
 
-	/* Set rectangle dimension */
-	Rect.SetWidth(Width);
-	Rect.SetHeight(Height);
+    /* Set rectangle dimension */
+    mRect.SetWidth(mWidth);
+    mRect.SetHeight(mHeight);
 
-	/* Set loaded */
-	Loaded = true;
+    /* Set loaded */
+    mLoaded = true;
 
-	/* Reset entity */
-	Reset();
+    /* Reset entity */
+    Reset();
 
-	return true;
+    return true;
 }
 
-bool CEntity::Load(string filepath)
+bool Entity::Load(string filepath)
 {
-	const char *c = filepath.c_str();
+    const char *c = filepath.c_str();
 
-	/* Load entity */
-	return Load(c);
+    /* Load entity */
+    return Load(c);
 }
 
-void CEntity::Unload(void)
+void Entity::Unload(void)
 {
-	/* Not loaded */
-	if (!Loaded)
-		return;
+    /* Not loaded */
+    if (!mLoaded) return;
 
-	/* Unload animation */
-	Animation.Unload();
-	
-	/* Clear collision vector */
-	Collisions.clear();
+    /* Unload animation */
+    mAnimation.Unload();
+    
+    /* Clear collision vector */
+    mCollisions.clear();
 }
 
-void CEntity::Collision(CEntity *Entity, Uint32 &col)
+void Entity::Collision(Entity *Entity, Uint32 &col)
 {
-	/* Entity non-collidable */
-	if (!Entity->Collidable)
-		col = 0;
+    /* Entity non-collidable */
+    if (!Entity->mCollidable) {
+        col = 0;
+    }
 }
 
-void CEntity::Physics(void)
+void Entity::Physics(void)
 {
-	/* Walk/Run force */
-	if (State & ENTITY_WALK) {
-		/* Apply force */
-		if (ForceX < 0 && SpeedX > -Speed)
-			SpeedX += ForceX;
-		if (ForceX > 0 && SpeedX <  Speed)
-			SpeedX += ForceX;
-			
-		/* No affects gravity */
-		if (noGravity) {
-			/* Apply force */
-			if (ForceY < 0 && SpeedY > -Speed)
-				SpeedY += ForceY;
-			if (ForceY > 0 && SpeedY <  Speed)
-				SpeedY += ForceY;
-		}
-	}
+    /* Walk/Run force */
+    if (mState & ENTITY_WALK) {
+        /* Apply force */
+        if (mForceX < 0 && mSpeedX > -mSpeed) {
+            mSpeedX += mForceX;
+        }
 
-	/* Level forces */
-	if (pLevel) {
-		float gravity  = pLevel->GetGravity();
-		float friction = pLevel->GetFriction();
-		
-		/* Friction force */
-		if (!(State & ENTITY_WALK)) {
-			if (SpeedX < 0)
-				SpeedX += friction;
-			if (SpeedX > 0)
-				SpeedX -= friction;
-		}
-		
-		/* Gravity/Friction force */
-		if (!noGravity) {
-			if (SpeedY > -AccelY)
-				SpeedY -= gravity;
-		}
-		else {
-			if (!(State & ENTITY_WALK)) {
-				if (SpeedY < 0)
-					SpeedY += friction;
-				if (SpeedY > 0)
-					SpeedY -= friction;
-			}
-		}
-	}
+        if (mForceX > 0 && mSpeedX < mSpeed) {
+            mSpeedX += mForceX;
+        }
+            
+        /* No affects gravity */
+        if (mNoGravity) {
+            /* Apply force */
+            if (mForceY < 0 && mSpeedY > -mSpeed) {
+                mSpeedY += mForceY;
+            }
+
+            if (mForceY > 0 && mSpeedY < mSpeed) {
+                mSpeedY += mForceY;
+            }
+        }
+    }
+
+    /* Level forces */
+    if (gpLevel) {
+        float gravity  = gpLevel->GetGravity();
+        float friction = gpLevel->GetFriction();
+        
+        /* Friction force */
+        if (!(mState & ENTITY_WALK)) {
+            if (mSpeedX < 0) {
+                mSpeedX += friction;
+            }
+
+            if (mSpeedX > 0) {
+                mSpeedX -= friction;
+            }
+        }
+        
+        /* Gravity/Friction force */
+        if (!mNoGravity) {
+            if (mSpeedY > -mAccelY) {
+                mSpeedY -= gravity;
+            }
+        } else {
+            if (!(mState & ENTITY_WALK)) {
+                if (mSpeedY < 0) {
+                    mSpeedY += friction;
+                }
+
+                if (mSpeedY > 0) {
+                    mSpeedY -= friction;
+                }
+            }
+        }
+    }
 }
 
-bool CEntity::Update(void)
+bool Entity::Update(void)
 {
-	const float step = 0.1;
+    const float step = 0.1;
 
-	/* Entity is dead */
-	if (State & ENTITY_DEAD)
-		return false;
+    /* Entity is dead */
+    if (mState & ENTITY_DEAD)
+        return false;
 
-	/* Apply physics */
-	Physics();
+    /* Apply physics */
+    Physics();
 
-	/* Round speed */
-	if (abs(SpeedX) < step)
-		SpeedX = 0;
-	if (abs(SpeedY) < step)
-		SpeedY = 0;
+    /* Round speed */
+    if (abs(mSpeedX) < step) {
+        mSpeedX = 0;
+    }
 
-	/* Iterations */
-	float loops = MaxAbs<float>(SpeedX, SpeedY);
+    if (abs(mSpeedY) < step) {
+        mSpeedY = 0;
+    }
 
-	/* Entity movement */
-	for (float i = 0; i < loops; i += step) {
-		Uint32 col;
+    /* Iterations */
+    float loops = MaxAbs<float>(mSpeedX, mSpeedY);
 
-		/* Detect collision */
-		col = CCollision::Detect(this);
+    /* Entity movement */
+    for (float i = 0; i < loops; i += step) {
+        Uint32 col;
 
-		/* X coordinate */
-		if (i < abs(SpeedX)) {
-			/* Collision */
-			if ( (col & COLLISION_LEFT  && SpeedX < 0) ||
-			     (col & COLLISION_RIGHT && SpeedX > 0) )
-			     	SpeedX = 0;
-					
-			float value = Rect.GetX();
+        /* Detect collision */
+        col = Colision::Detect(this);
 
-			/* Move entity */
-			if (SpeedX > 0) {
-				value += step;
-				Rect.SetX(value);
-			}
-			
-			if (SpeedX < 0) {
-				value -= step;
-				Rect.SetX(value);
-			}
-		}
+        /* X coordinate */
+        if (i < abs(mSpeedX)) {
+            /* Collision */
+            if ((col & COLLISION_LEFT  && mSpeedX < 0) ||
+                (col & COLLISION_RIGHT && mSpeedX > 0)) {
 
-		/* Y coordinate */
-		if (i < abs(SpeedY)) {
-			/* Collision */
-			if ( (col & COLLISION_BOTTOM && SpeedY < 0) ||
-			     (col & COLLISION_TOP    && SpeedY > 0) )
-			     	SpeedY = 0;
+                mSpeedX = 0;
+            }
+                    
+            float value = mRect.GetX();
 
-			float value = Rect.GetY();
+            /* Move entity */
+            if (mSpeedX > 0) {
+                value += step;
+                mRect.SetX(value);
+            }
+            
+            if (mSpeedX < 0) {
+                value -= step;
+                mRect.SetX(value);
+            }
+        }
 
-			/* Move entity */
-			if (SpeedY > 0) {
-				value += step;
-				Rect.SetY(value);
-			}
-			
-			if (SpeedY < 0) {
-				value -= step;
-				Rect.SetY(value);
-			}
-		}
-	}
-	
-	return true;
+        /* Y coordinate */
+        if (i < abs(mSpeedY)) {
+            /* Collision */
+            if ((col & COLLISION_BOTTOM && mSpeedY < 0) ||
+                (col & COLLISION_TOP    && mSpeedY > 0)) {
+
+                mSpeedY = 0;
+            }
+
+            float value = mRect.GetY();
+
+            /* Move entity */
+            if (mSpeedY > 0) {
+                value += step;
+                mRect.SetY(value);
+            }
+            
+            if (mSpeedY < 0) {
+                value -= step;
+                mRect.SetY(value);
+            }
+        }
+    }
+    
+    return true;
 }
 
-bool CEntity::Draw(bool idle)
+bool Entity::Draw(bool idle)
 {
-	if (State & ENTITY_DEAD)
-		return false;
+    if (mState & ENTITY_DEAD) return false;
 
-	CRect srcRect;
-	
-	/* Set rect */
-	srcRect.SetX(0.0);
-	srcRect.SetY(0.0);
-	srcRect.SetWidth(Rect.GetWidth());
-	srcRect.SetHeight(Rect.GetHeight());
-	
-	if (State & ENTITY_IDLE)
-		idle = true;
+    Rect srRect;
+    
+    /* Set rect */
+    srRect.SetX(0.0);
+    srRect.SetY(0.0);
+    srRect.SetWidth(mRect.GetWidth());
+    srRect.SetHeight(mRect.GetHeight());
+    
+    if (mState & ENTITY_IDLE) {
+        idle = true;
+    }
 
-	/* Animate entity */
-	Animation.Update(idle);
+    /* Animate entity */
+    mAnimation.Update(idle);
 
-	/* Draw entity */
-	return Animation.Draw(&srcRect, &Rect);
+    /* Draw entity */
+    return mAnimation.Draw(&srRect, &mRect);
 }
 
-void CEntity::Move(Uint16 dir)
+void Entity::Move(Uint16 dir)
 {	
-	if (!noGravity){
-		if (dir & ENTITY_UP) {
-			Uint32 col;
+    if (!mNoGravity){
+        if (dir & ENTITY_UP) {
+            Uint32 col;
 
-			/* Detect collision */
-			col = CCollision::Detect(this);
-			
-			if (col & COLLISION_BOTTOM)
-				SpeedY = AccelY;
-		}
-	}
-	else {
-		if (dir & ENTITY_DOWN)
-			ForceY = -AccelY;
-		
-		if (dir & ENTITY_UP)
-			ForceY = AccelY;
-	}
-	
-	/* Set X acceleration */
-	if (dir & ENTITY_LEFT)
-		ForceX = -AccelX;
-	
-	if (dir & ENTITY_RIGHT)
-		ForceX = AccelX;
+            /* Detect collision */
+            col = Colision::Detect(this);
+            
+            if (col & COLLISION_BOTTOM) {
+                mSpeedY = mAccelY;
+            }
+        }
+    } else {
+        if (dir & ENTITY_DOWN) {
+            mForceY = -mAccelY;
+        }
+        
+        if (dir & ENTITY_UP) {
+            mForceY = mAccelY;
+        }
+    }
+    
+    /* Set X acceleration */
+    if (dir & ENTITY_LEFT) {
+        mForceX = -mAccelX;
+    }
+    
+    if (dir & ENTITY_RIGHT) {
+        mForceX = mAccelX;
+    }
 
     /* Set walk state */
-	State |= ENTITY_WALK;
+    mState |= ENTITY_WALK;
 }
 
-void CEntity::Run()
+void Entity::Run()
 {
-	Animation.SetFlipX(false);
-	Animation.SetFlipY(false);
-	
-	switch (Motion) {
-	case ENTITY_LEFT:
-		if (AniMap[ENTITY_LEFT])
-			Animation.SetAnimation(AniMap[ENTITY_LEFT] - 1);
-		else {
-			Animation.SetAnimation(AniMap[ENTITY_RIGHT] - 1);
-			Animation.SetFlipX(true);
-		}
-		break;
-		
-	case ENTITY_RIGHT:
-		if (AniMap[ENTITY_RIGHT])
-			Animation.SetAnimation(AniMap[ENTITY_RIGHT] - 1);
-		else {
-			Animation.SetAnimation(AniMap[ENTITY_LEFT] - 1);
-			Animation.SetFlipX(true);
-		}
-		break;
-		
-	case ENTITY_UP:
-		if (AniMap[ENTITY_UP])
-			Animation.SetAnimation(AniMap[ENTITY_UP] - 1);
-		else {
-			Animation.SetAnimation(AniMap[ENTITY_DOWN] - 1);
-			Animation.SetFlipY(true);
-		}
-		break;
-		
-	case ENTITY_DOWN:
-		if (AniMap[ENTITY_DOWN])
-			Animation.SetAnimation(AniMap[ENTITY_DOWN] - 1);   
-		else {
-			Animation.SetAnimation(AniMap[ENTITY_UP] - 1);
-			Animation.SetFlipY(true);
-		}
-		break;
-	/*case ENT_STOP:
-		Animation.SetAnimation(AniMap[ENT_STOP] - 1);
-		break;*/
+    mAnimation.SetFlipX(false);
+    mAnimation.SetFlipY(false);
+    
+    switch (mMotion) {
+        case ENTITY_LEFT:
+            if (mAniMap[ENTITY_LEFT]) {
+                mAnimation.SetAnimation(mAniMap[ENTITY_LEFT] - 1);
+            } else {
+                mAnimation.SetAnimation(mAniMap[ENTITY_RIGHT] - 1);
+                mAnimation.SetFlipX(true);
+            }
+
+            break;
+            
+        case ENTITY_RIGHT:
+            if (mAniMap[ENTITY_RIGHT]) {
+                mAnimation.SetAnimation(mAniMap[ENTITY_RIGHT] - 1);
+            } else {
+                mAnimation.SetAnimation(mAniMap[ENTITY_LEFT] - 1);
+                mAnimation.SetFlipX(true);
+            }
+
+            break;
+            
+        case ENTITY_UP:
+            if (mAniMap[ENTITY_UP]) {
+                mAnimation.SetAnimation(mAniMap[ENTITY_UP] - 1);
+            } else {
+                mAnimation.SetAnimation(mAniMap[ENTITY_DOWN] - 1);
+                mAnimation.SetFlipY(true);
+            }
+
+            break;
+            
+        case ENTITY_DOWN:
+            if (mAniMap[ENTITY_DOWN]) {
+                mAnimation.SetAnimation(mAniMap[ENTITY_DOWN] - 1);   
+            } else {
+                mAnimation.SetAnimation(mAniMap[ENTITY_UP] - 1);
+                mAnimation.SetFlipY(true);
+            }
+
+            break;
+
+        /*case ENT_STOP:
+            mAnimation.SetAnimation(mAniMap[ENT_STOP] - 1);
+            break;*/
     }
-	
-	
-	/* Entity move */	Move(Motion);
+    
+    
+    /* Entity move */
+    Move(mMotion);
 }
 
-void CEntity::Stop(void)
+void Entity::Stop(void)
 {
-	SpeedX *= 0.5;
-	SpeedY *= 0.5;
-	
-	/* Unset walk state */
-	State &= ~ENTITY_WALK;
-	State |=  ENTITY_IDLE;
+    mSpeedX *= 0.5;
+    mSpeedY *= 0.5;
+    
+    /* Unset walk state */
+    mState &= ~ENTITY_WALK;
+    mState |=  ENTITY_IDLE;
 }
 
-void CEntity::Kill(void)
+void Entity::Kill(void)
 {
-	/* Already dead */
-	if (State & ENTITY_DEAD)
-		return;
+    /* Already dead */
+    if (mState & ENTITY_DEAD) return;
 
-	/* Set dead state */
-	State |= ENTITY_DEAD;
+    /* Set dead state */
+    mState |= ENTITY_DEAD;
 }
 
-string CEntity::GetType(void)
+string Entity::GetType(void)
 {
-	return Type;
+    return mType;
 }
     
-string CEntity::GetName(void)
+string Entity::GetName(void)
 {
-	return Name;
+    return mName;
 }
 
-Uint32 CEntity::GetPoints(void)
+Uint32 Entity::GetPoints(void)
 {
-	return Points;
+    return mPoints;
 }
 
-CRect CEntity::GetRect(void)
+Rect Entity::GetRect(void)
 {
-	return Rect;
+    return mRect;
 }
 
-bool CEntity::GetCollidable(void)
+bool Entity::GetCollidable(void)
 {
-	return Collidable;
+    return mCollidable;
 }
 
-Uint16 CEntity::GetState(void)
+Uint16 Entity::GetState(void)
 {
-	return State;
+    return mState;
 }
 
-Uint16 CEntity::GetMotion(void)
+Uint16 Entity::GetMotion(void)
 {
-	return Motion;
+    return mMotion;
 }
 
-Uint16 CEntity::GetId(void)
+Uint16 Entity::GetId(void)
 {
-	return Id;
+    return mId;
 }
 
-Uint16 CEntity::GetEntityNumber(void)
+Uint16 Entity::GetEntityNumber(void)
 {
-	return EntityNumber;
+    return mEntityNumber;
 }
 
-void CEntity::SetMotion(Uint16 value)
+void Entity::SetMotion(Uint16 value)
 {
-	Motion = value;
+    mMotion = value;
 }
 
-void CEntity::SetStart(float x, float y)
+void Entity::SetStart(float x, float y)
 {
-	StartX = x;
-	StartY = y;
+    mStartX = x;
+    mStartY = y;
 }
 
-void CEntity::SetState(Uint16 value)
+void Entity::SetState(Uint16 value)
 {
-	State = value;
+    mState = value;
 }
 
-void CEntity::SetId(Uint16 value)
+void Entity::SetId(Uint16 value)
 {
-	Id = value;
+    mId = value;
 }
 
-void CEntity::SetBasepath(string value)
+void Entity::SetBasepath(string value)
 {
-	Basepath = value;
+    mBasepath = value;
 }
 
-void CEntity::ResetRect(void)
+void Entity::ResetRect(void)
 {
-	Rect.SetX(StartX);
-	Rect.SetY(StartY);
+    mRect.SetX(mStartX);
+    mRect.SetY(mStartY);
 }

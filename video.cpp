@@ -1,295 +1,291 @@
+#include <ctime>
+
 #include <boost/format.hpp>
 #include <SDL/SDL.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <ctime>
 
-#include "image.h"
-#include "timer.h"
-#include "utils.h"
-#include "video.h"
+#include "video.hpp"
+#include "image.hpp"
+#include "timer.hpp"
 
 using namespace boost;
 
 
 /* Video handler */
-CVideo *pVideo = NULL;
+Video *gpVideo = NULL;
 
 
-CVideo::CVideo(void)
+Video::Video(void)
 {
-	/* Initialize variables */
-	Fps        = 0.0;
-	FpsLimit   = 61.0;
-	FpsTime    = 0;
-	FrameCnt   = 0;
-	FrameTime  = 0;
+    /* Initialize variables */
+    mFps       = 0.0;
+    mFpsLimit  = 61.0;
+    mFpsTime   = 0;
+    mFrameCnt  = 0;
+    mFrameTime = 0;
 
-	/* Initialize pointer */
-	Screen = NULL;
+    /* Initialize pointer */
+    mpScreen = NULL;
 }
 
-CVideo::~CVideo(void)
+Video::~Video(void)
 {
-	/* Free */
-	Free();
+    /* Free */
+    Free();
 
-	/* Quit SDL vide */
-	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+    /* Quit SDL vide */
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-void CVideo::glSetup(void)
+void Video::glSetup(void)
 {
-	/* Clear color */
-	glClearColor(0.0, 0.0, 0.0, 1.0);
+    /* Clear color */
+    glClearColor(0.0, 0.0, 0.0, 1.0);
 
-	/* Viewport */
-	glViewport(0, 0, Width, Height);
+    /* Viewport */
+    glViewport(0, 0, mWidth, mHeight);
 
-	/* Set projection matrix */
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
+    /* Set projection matrix */
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
 
-	/* Orthogonal mode */
-	gluOrtho2D(0, Width, 0, Height);
+    /* Orthogonal mode */
+    gluOrtho2D(0, mWidth, 0, mHeight);
 
-	/* Set model view matrix */
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+    /* Set model view matrix */
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-	/* Alpha blending */
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    /* Alpha blending */
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	/* Scissor test */
-	glScissor(0, 0, Width, Height);
-	glEnable(GL_SCISSOR_TEST);
+    /* Scissor test */
+    glScissor(0, 0, mWidth, mHeight);
+    glEnable(GL_SCISSOR_TEST);
 }
 
-bool CVideo::Init(void)
+bool Video::Init(void)
 {
-	/* Video already initialized */
-	if (SDL_WasInit(SDL_INIT_VIDEO))
-		return true;
+    /* Video already initialized */
+    if (SDL_WasInit(SDL_INIT_VIDEO)) return true;
 
-	/* Initialize SDL video */
-	return !SDL_InitSubSystem(SDL_INIT_VIDEO);
+    /* Initialize SDL video */
+    return !SDL_InitSubSystem(SDL_INIT_VIDEO);
 }
 
-void CVideo::Free(void)
+void Video::Free(void)
 {
-	/* Free screen */
-	if (Screen)
-		SDL_FreeSurface(Screen);
+    /* Free screen */
+    if (mpScreen) SDL_FreeSurface(mpScreen);
 
-	/* Reset pointer */
-	Screen = NULL;
+    /* Reset pointer */
+    mpScreen = NULL;
 }
 
-void CVideo::SetActive(void)
+void Video::SetActive(void)
 {
-	/* Set active video */
-	pVideo = this;
+    /* Set active video */
+    gpVideo = this;
 }
 
-bool CVideo::Configure(Uint16 width, Uint16 height)
+bool Video::Configure(Uint16 width, Uint16 height)
 {
-	Uint32 Flags = (SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_DOUBLEBUF | SDL_OPENGL);
+    Uint32 Flags = (SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_DOUBLEBUF | SDL_OPENGL);
 
-	/* Free screen */
-	Free();
+    /* Free screen */
+    Free();
 
-	/* Set GL attributes */
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    /* Set GL attributes */
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-	/* Set video mode */
-	Screen = SDL_SetVideoMode(width, height, 24, Flags);
-	if (!Screen)
-		return false;
+    /* Set video mode */
+    mpScreen = SDL_SetVideoMode(width, height, 24, Flags);
+    if (!mpScreen) return false;
 
-	/* Hide cursor */
-	SDL_ShowCursor(SDL_DISABLE);
+    /* Hide cursor */
+    SDL_ShowCursor(SDL_DISABLE);
 
-	/* Store settings */
-	this->Width  = width;
-	this->Height = height;
+    /* Store settings */
+    mWidth  = width;
+    mHeight = height;
 
-	/* OpenGL setup */
-	glSetup();
+    /* OpenGL setup */
+    glSetup();
 
-	return true;
+    return true;
 }
 
-void CVideo::SetCaption(const char *title)
+void Video::SetCaption(const char *title)
 {
-	/* Set window caption */
-	SDL_WM_SetCaption(title, NULL);
+    /* Set window caption */
+    SDL_WM_SetCaption(title, NULL);
 }
 
-void CVideo::SetCaption(string title)
+void Video::SetCaption(string title)
 {
-	const char *c = title.c_str();
+    const char *c = title.c_str();
 
-	/* Set window caption */
-	return SetCaption(c);
+    /* Set window caption */
+    return SetCaption(c);
 }
 
-void CVideo::Clear(void)
+void Video::Clear(void)
 {
-	/* Clear screen */
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    /* Clear screen */
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-bool CVideo::Flip(bool retard)
+bool Video::Flip(bool retard)
 {
-	float  elapsed;
-	Uint64 time;
+    float  elapsed;
+    Uint64 time;
 
-	/* No screen */
-	if (!Screen)
-		return false;
+    /* No screen */
+    if (!mpScreen) return false;
 
-	/* Swap buffers */
-	SDL_GL_SwapBuffers();
-	
-	/* No FPS limit */
-	if (!retard)
-		return false;
+    /* Swap buffers */
+    SDL_GL_SwapBuffers();
+    
+    /* No FPS limit */
+    if (!retard) return false;
 
-	/* FPS limit */
-	Sint64 delay;
+    /* FPS limit */
+    Sint64 delay;
 
-	/* Calculate delay */ //FrameTime: tiempo desde el ultimo fotograma
-	delay  = FrameTime + (NSEC_PER_SEC / FpsLimit);
-	delay -= CTimer::GetTime();
+    /* Calculate delay */ //FrameTime: tiempo desde el ultimo fotograma
+    delay  = mFrameTime + (NSEC_PER_SEC / mFpsLimit);
+    delay -= Timer::GetTime();
 
-	/* Sleep */
-	if (delay > 0)
-		CTimer::NSleep(delay);
+    /* Sleep */
+    if (delay > 0) Timer::NSleep(delay);
 
-	/* Get time */
-	time    = CTimer::GetTime();
-	elapsed = (time - FpsTime) / (NSEC_PER_SEC * 1.0);
+    /* Get time */
+    time    = Timer::GetTime();
+    elapsed = (time - mFpsTime) / (NSEC_PER_SEC * 1.0);
 
-	/* Update */
-	FrameCnt++;
-	FrameTime = time;
+    /* Update */
+    mFrameCnt++;
+    mFrameTime = time;
 
-	if (elapsed >= 1.0) {
-		/* Calculate FPS */
-		Fps = FrameCnt / elapsed;
+    if (elapsed >= 1.0) {
+        /* Calculate FPS */
+        mFps = mFrameCnt / elapsed;
 
-		/* Update variables */
-		FrameCnt = 0;
-		FpsTime  = time;
-	}
+        /* Update variables */
+        mFrameCnt = 0;
+        mFpsTime  = time;
+    }
 
-	return true;
+    return true;
 }
 
-bool CVideo::GetScreen(void *pixels)
+bool Video::GetScreen(void *pixels)
 {
-	/* No screen */
-	if (!Screen)
-		return false;
+    /* No screen */
+    if (!mpScreen) return false;
 
-	/* Read pixels */
-	glReadPixels(0, 0, Width, Height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    /* Read pixels */
+    glReadPixels(0, 0, mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
-	/* Flip pixels */
-	CImage::VFlip(pixels, Width, Height, 4);
+    /* Flip pixels */
+    Image::VFlip(pixels, mWidth, mHeight, 4);
 
-	return true;
+    return true;
 }
 
-bool CVideo::SaveScreen(string path)
+bool Video::SaveScreen(string path)
 {
-	SDL_Surface *surface;
-	struct tm   *timeinfo;
-	
-	time_t tim;
+    SDL_Surface *surface;
+    struct tm   *timeinfo;
+    
+    time_t tim;
     char   buffer[20];
-	bool   ret;
+    bool   ret;
 
-	/* Create surface */
-	surface = CreateSurface(Width, Height);
-	if (!surface)
-		return false;
+    /* Create surface */
+    surface = CreateSurface(mWidth, mHeight);
+    if (!surface) return false;
 
-	/* Get screen */
-	ret = GetScreen(surface->pixels);
-	if (!ret)
-		return false;
+    /* Get screen */
+    ret = GetScreen(surface->pixels);
+    if (!ret) return false;
 
-	/* Get localtime */
-	tim      = time(NULL);
+    /* Get localtime */
+    tim      = time(NULL);
     timeinfo = localtime(&tim);
-	
-	/* Format filename */
+    
+    /* Format filename */
     strftime(buffer, 20, "%d%m%y_%H%M%S.bmp",timeinfo);
-	
-	/* Save image */
-	CImage::Save(surface, path + buffer);
+    
+    /* Save image */
+    Image::Save(surface, path + buffer);
 
-	/* Free surface */
-	SDL_FreeSurface(surface);
+    /* Free surface */
+    SDL_FreeSurface(surface);
 
-	return ret;
+    return ret;
 }
 
-SDL_Surface *CVideo::CreateSurface(Uint16 Width, Uint16 Height)
+SDL_Surface *Video::CreateSurface(Uint16 width, Uint16 height)
 {
-	Uint32 rmask, gmask, bmask, amask;
+    Uint32 rmask;
+    Uint32 gmask;
+    Uint32 bmask;
+    Uint32 amask;
 
-	/* Colour mask */
-	#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-		rmask = 0xFF000000;
-		gmask = 0x00FF0000;
-		bmask = 0x0000FF00;
-		amask = 0x000000FF;
-	#else
-		rmask = 0x000000FF;
-		gmask = 0x0000FF00;
-		bmask = 0x00FF0000;
-		amask = 0xFF000000;
-	#endif
+    /* Colour mask */
+    #if SDL_BYTEORDER == SDL_BIG_ENDIAN
+        rmask = 0xFF000000;
+        gmask = 0x00FF0000;
+        bmask = 0x0000FF00;
+        amask = 0x000000FF;
+    #else
+        rmask = 0x000000FF;
+        gmask = 0x0000FF00;
+        bmask = 0x00FF0000;
+        amask = 0xFF000000;
+    #endif
 
-	/* Create surface */
-	return SDL_CreateRGBSurface(SDL_SWSURFACE, Width, Height, 32, rmask, gmask, bmask, amask);
+    /* Create surface */
+    return SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, rmask, gmask, bmask, amask);
 }
 
-bool CVideo::CopySurface(SDL_Surface *src, SDL_Rect *srcRect, SDL_Surface *dst, SDL_Rect *dstRect)
+bool Video::CopySurface(SDL_Surface *src, SDL_Rect *srRect, SDL_Surface *dst, SDL_Rect *dstRect)
 {
-	Uint32 Flags = src->flags;
-	bool   ret;
+    Uint32 flags = src->flags;
+    bool   ret;
 
-	/* Disable alpha */
-	if (Flags & SDL_SRCALPHA)
-		SDL_SetAlpha(src, 0, 0xFF);
+    /* Disable alpha */
+    if (flags & SDL_SRCALPHA) {
+        SDL_SetAlpha(src, 0, 0xFF);
+    }
 
-	/* Blit surface */
-	ret = !SDL_BlitSurface(src, srcRect, dst, dstRect);
+    /* Blit surface */
+    ret = !SDL_BlitSurface(src, srRect, dst, dstRect);
 
-	/* Enable alpha */
-	if (Flags & SDL_SRCALPHA)
-		SDL_SetAlpha(src, Flags, 0xFF);
+    /* Enable alpha */
+    if (flags & SDL_SRCALPHA) {
+        SDL_SetAlpha(src, flags, 0xFF);
+    }
 
-	return ret;
+    return ret;
 }
 
-Uint16 CVideo::GetWidth(void)
+Uint16 Video::GetWidth(void)
 {
-	/* Get window width */
-    return Width;
+    /* Get window width */
+    return mWidth;
 }
 
-Uint16 CVideo::GetHeight(void)
+Uint16 Video::GetHeight(void)
 {
-	/* Get window height */
-    return Height;
+    /* Get window height */
+    return mHeight;
 }
 
-float CVideo::GetFps (void)
+float Video::GetFps (void)
 {
-	/* Get frames per second */
-    return Fps;
+    /* Get frames per second */
+    return mFps;
 }

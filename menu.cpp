@@ -1,341 +1,349 @@
 #include <boost/format.hpp>
-#include "menu.h"
-#include "script.h"
-#include "utils.h"
+
+#include "menu.hpp"
+#include "script.hpp"
+#include "utils.hpp"
 
 using namespace boost;
 
 
-CMenu::CMenu(void)
+Menu::Menu(void)
 {	
-	Selected = NULL;
+    mpSelected = NULL;
 }
 
-CMenu::~CMenu(void)
+Menu::~Menu(void)
 {	
-	/* Unload */
-	Unload();
+    /* Unload */
+    Unload();
 }
 
-bool CMenu::LoadSettings(string filepath)
+bool Menu::LoadSettings(string filepath)
 {
-	CScript Script;
-	bool    ret;
-	string  fontPath;
-	string  musicPath;
-	Uint16  size;
+    Script script;
+    bool   ret;
+    string fontPath;
+    string musicPath;
+    Uint16 size;
 
-	/* Load script */
-	ret = Script.Load(filepath + "menu.ini");
-	if (!ret)
-		return false;
-		
-	/* Get font values */
-	fontPath = Script.GetString("Font");
-	size     = Script.GetValue<Uint16>("Size");
-	
-	/* Load menu font */
-	ret = Font.Load(filepath + fontPath, size);
-	if (!ret) {
-		/* Unload */
-		Unload();
-
-		return false;
-	}
-	
-	/* Load colours */
-	SelectedColor   = Script.GetColor("Selected.Color");
-	NoSelectedColor = Script.GetColor("NoSelected.Color");
-	
-	/* Load music */
-	musicPath = Script.GetString("Music");
-	if (!musicPath.empty())
-		Music.Load(filepath + musicPath);
-
-	return true;
-}
-
-bool CMenu::LoadResources(string filepath)
-{
-	CScript Script;
-	bool    ret;
-	Sint16  images, selectable, noSelectable, options;
-	Sint16  i;
-
-	/* Load script */
-	ret = Script.Load(filepath + "menu.ini");
-	if (!ret)
-		return false;
-	
-	/* Get number of resources */
-	images       = Script.GetValue<Uint16>("Images");
-    selectable   = Script.GetValue<Uint16>("Selectable");
-    noSelectable = Script.GetValue<Uint16>("NoSelectable");
-    options      = Script.GetValue<Uint16>("Options");
-		
-	/* Load images */
-	for (i = 0; i < images; i++) {
-		CEntity *Entity = new CEntity;
-		string   path, prefix;
-		
-		/* Generate prefix */
-		prefix = str(format("Image[%d].") % i);
+    /* Load script */
+    ret = script.Load(filepath + "menu.ini");
+    if (!ret) return false;
         
-		/* Get image path */
-        path = Script.GetString(prefix + "Path");
+    /* Get font values */
+    fontPath = script.GetString("Font");
+    size     = script.GetValue<Uint16>("Size");
+    
+    /* Load menu font */
+    ret = mFont.Load(filepath + fontPath, size);
+    if (!ret) {
+        /* Unload */
+        Unload();
+
+        return false;
+    }
+    
+    /* Load colours */
+    mSelectedColor   = script.GetColor("Selected.Color");
+    mNoSelectedColor = script.GetColor("NoSelected.Color");
+    
+    /* Load music */
+    musicPath = script.GetString("Music");
+    if (!musicPath.empty()) {
+        mMusic.Load(filepath + musicPath);
+    }
+
+    return true;
+}
+
+bool Menu::LoadResources(string filepath)
+{
+    Script script;
+    bool   ret;
+    Sint16 images;
+    Sint16 selectable;
+    Sint16 noSelectable;
+    Sint16 options;
+    Sint16 i;
+
+    /* Load script */
+    ret = script.Load(filepath + "menu.ini");
+    if (!ret) return false;
+    
+    /* Get number of resources */
+    images       = script.GetValue<Uint16>("Images");
+    selectable   = script.GetValue<Uint16>("Selectable");
+    noSelectable = script.GetValue<Uint16>("NoSelectable");
+    options      = script.GetValue<Uint16>("Options");
         
-		/* Push image */
-        Images.push_back(Entity);
+    /* Load images */
+    for (i = 0; i < images; i++) {
+        Entity *entity = new Entity;
+        string  path, prefix;
         
-        Entity->SetBasepath(filepath);
-        ret = Entity->Load(filepath + path);
-        if (!ret)
-            return false;
-	}
-	
-	/* Load selectable text */
-	for (i = 0; i < selectable; i++) {
-		CText *Text = new CText;
-		CPoint Point;
-		string prefix, value;
-		Sint16 action;
-		
-		/* Generate prefix */
-		prefix = str(format("Text[%d].") % i);
+        /* Generate prefix */
+        prefix = str(format("Image[%d].") % i);
         
-		/* Get selectable text */
-        value = Script.GetString(prefix + "Text");
-		
-		/* Get position */
-		float x = Script.GetValue<float>(prefix + "PosX");
-		float y = Script.GetValue<float>(prefix + "PosY");
-		
-		Point.SetPoint(x, y);
-		
-		/* Set text */
-		Text->Text  = value;
-		Text->Point = Point;
-		
-		/* Get selectable text action*/
-        action = Script.GetValue<Sint16>(prefix + "Action");
-		
-		/* Select default text */
-		if (i == 0)
-			Selected = Text;
+        /* Get image path */
+        path = script.GetString(prefix + "Path");
         
-		/* Insert text */
-		SelectableText.insert(pair<CText *, Sint16>(Text, action));
-	}
-	
-	/* Load non selectable text */
-	for (i = 0; i < noSelectable; i++) {
-		CText *Text = new CText;
-		CPoint Point;
-		string prefix, value;
-		
-		/* Generate prefix */
-		prefix = str(format("TextN[%d].") % i);
+        /* Push image */
+        mImages.push_back(entity);
         
-		/* Get selectable text */
-        value = Script.GetString(prefix + "Text");
-		
-		/* Get position */
-		float x = Script.GetValue<float>(prefix + "PosX");
-		float y = Script.GetValue<float>(prefix + "PosY");
-		
-		Point.SetPoint(x, y);
-		
-		/* Set text */
-		Text->Text  = value;
-		Text->Point = Point;
-		
-		/* Push text */
-        NoSelectableText.push_back(Text);
-	}
+        entity->SetBasepath(filepath);
+        ret = entity->Load(filepath + path);
+        if (!ret) return false;
+    }
+    
+    /* Load selectable text */
+    for (i = 0; i < selectable; i++) {
+        Text  *text = new Text;
+        Point  point;
+        string prefix;
+        string value;
+        Sint16 action;
+        
+        /* Generate prefix */
+        prefix = str(format("Text[%d].") % i);
+        
+        /* Get selectable text */
+        value = script.GetString(prefix + "Text");
+        
+        /* Get position */
+        float x = script.GetValue<float>(prefix + "PosX");
+        float y = script.GetValue<float>(prefix + "PosY");
+        
+        point.SetPoint(x, y);
+        
+        /* Set text */
+        text->mText  = value;
+        text->mPoint = point;
+        
+        /* Get selectable text action*/
+        action = script.GetValue<Sint16>(prefix + "Action");
+        
+        /* Select default text */
+        if (i == 0) mpSelected = text;
+        
+        /* Insert text */
+        mSelectableText.insert(pair<Text *, Sint16>(text, action));
+    }
+    
+    /* Load non selectable text */
+    for (i = 0; i < noSelectable; i++) {
+        Text  *text = new Text;
+        Point  point;
+        string prefix;
+        string value;
+        
+        /* Generate prefix */
+        prefix = str(format("TextN[%d].") % i);
+        
+        /* Get selectable text */
+        value = script.GetString(prefix + "Text");
+        
+        /* Get position */
+        float x = script.GetValue<float>(prefix + "PosX");
+        float y = script.GetValue<float>(prefix + "PosY");
+        
+        point.SetPoint(x, y);
+        
+        /* Set text */
+        text->mText  = value;
+        text->mPoint = point;
+        
+        /* Push text */
+        mNoSelectableText.push_back(text);
+    }
+    
+    /* Load options */
+    for (i = 0; i < options; i++) {
 
-	return true;
+    }
+
+    return true;
 }
 
-bool CMenu::Load(string filepath)
+bool Menu::Load(string filepath)
 {
-	bool ret;
+    bool ret;
 
-	/* Load settings */
-	ret = LoadSettings(filepath);
-	if (!ret) {
-		/* Unload */
-		Unload();
+    /* Load settings */
+    ret = LoadSettings(filepath);
+    if (!ret) {
+        /* Unload */
+        Unload();
 
-		return false;
-	}
-	
-	/* Load settings */
-	ret = LoadResources(filepath);
-	if (!ret) {
-		/* Unload */
-		Unload();
+        return false;
+    }
+    
+    /* Load settings */
+    ret = LoadResources(filepath);
+    if (!ret) {
+        /* Unload */
+        Unload();
 
-		return false;
-	}
+        return false;
+    }
 
-	return true;
+    return true;
 
 }
 
-void CMenu::Unload(void)
+void Menu::Unload(void)
 {
-	vector<CEntity *>::iterator    it1;
-	map<CText *, Sint16>::iterator it2;
-	vector<CText *>::iterator      it3;
+    vector<Entity *>::iterator    it1;
+    map<Text *, Sint16>::iterator it2;
+    vector<Text *>::iterator      it3;
 
-	/* Unload images */
-	foreach(Images, it1) {
-		CEntity *Entity = *it1;
+    /* Unload images */
+    foreach(mImages, it1) {
+        Entity *entity = *it1;
 
-		/* Free Image */
-		delete Entity;
-	}
+        /* Free Image */
+        delete entity;
+    }
 
-	/* Unload selectable texts */
-	foreach(SelectableText, it2) {
-		CText *Text = (*it2).first;
+    /* Unload selectable texts */
+    foreach(mSelectableText, it2) {
+        Text *text = (*it2).first;
 
-		/* Free selectable text */
-		delete Text;
-		SelectableText.erase(it2);
-	}
+        /* Free selectable text */
+        delete text;
+        mSelectableText.erase(it2);
+    }
 
-	/* Unload non selectable texts */
-	foreach(NoSelectableText, it3) {
-		CText *Text = *it3;
+    /* Unload non selectable texts */
+    foreach(mNoSelectableText, it3) {
+        Text *text = *it3;
 
-		/* Free Image */
-		delete Text;
-	}
+        /* Free Image */
+        delete text;
+    }
 
-	/* Unload selected element */
-	if (Selected)
-		delete Selected;
+    /* Unload selected element */
+    if (mpSelected)	delete mpSelected;
 
-	/* Unload font */
-	Font.Unload();
+    /* Unload font */
+    mFont.Unload();
 
-	/* Unload music */
-	Music.Unload();
+    /* Unload music */
+    mMusic.Unload();
 }
 
-void CMenu::Change(Sint16 direction)
+void Menu::Change(Sint16 direction)
 {
-	map<CText *, Sint16>::iterator it;
-	
-	/* Get element selected */
-	it = SelectableText.find(Selected);
-	
-	/* Change direction */
-	switch (direction) {
-	case MENU_UP:
-		if (it == SelectableText.end())
-			it = SelectableText.end();
-		else
-			it++;
-			
-		if (it == SelectableText.end())
-			it--;
-			
-		Selected = (*it).first;
-		
-		break;
-		
-	case MENU_DOWN:
-		if (it == SelectableText.begin())
-			it = SelectableText.begin();
-		else
-			it--;
-			
-		Selected = (*it).first;
-		
-		break;
-	}
+    map<Text *, Sint16>::iterator it;
+    
+    /* Get element selected */
+    it = mSelectableText.find(mpSelected);
+    
+    /* Change direction */
+    switch (direction) {
+        case MENU_UP:
+            if (it == mSelectableText.end()) {
+                it = mSelectableText.end();
+            } else {
+                it++;
+            }
+            
+            if (it == mSelectableText.end()) {
+                it--;
+            }
+            
+            mpSelected = (*it).first;
+        
+            break;
+        
+        case MENU_DOWN:
+            if (it == mSelectableText.begin()) {
+                it = mSelectableText.begin();
+            } else {
+                it--;
+            }
+            
+            mpSelected = (*it).first;
+        
+            break;
+    }
 }
 
-Sint16 CMenu::Select(void)
+Sint16 Menu::Select(void)
 {
-	return SelectableText.find(Selected)->second;
+    return mSelectableText.find(mpSelected)->second;
 }
 
-bool CMenu::Play(void)
+bool Menu::Play(void)
 {
-	/* Play music */
-	return Music.Play();
+    /* Play music */
+    return mMusic.Play();
 }
 
-void CMenu::Stop(void)
+void Menu::Stop(void)
 {
-	/* Stop music */
-	Music.Stop();
+    /* Stop music */
+    mMusic.Stop();
 }
 
-void CMenu::Pause(void)
+void Menu::Pause(void)
 {
-	/* Pause music */
-	Music.Pause();
+    /* Pause music */
+    mMusic.Pause();
 }
 
-void CMenu::Resume(void)
+void Menu::Resume(void)
 {
-	/* Resume music */
-	Music.Resume();
+    /* Resume music */
+    mMusic.Resume();
 }
 
-bool CMenu::Draw(void)
+bool Menu::Draw(void)
 {
-	vector<CEntity *>::iterator    it1;
-	map<CText *, Sint16>::iterator it2;
-	vector<CText *>::iterator      it3;
+    vector<Entity *>::iterator    it1;
+    map<Text *, Sint16>::iterator it2;
+    vector<Text *>::iterator      it3;
 
-	bool ret;
-	
-	/* Draw images */
-	foreach(Images, it1) {
-		CEntity *Entity = *it1;
+    bool ret;
+    
+    /* Draw images */
+    foreach(mImages, it1) {
+        Entity *entity = *it1;
 
-		/* Draw entity */
-		ret = Entity->Draw();
-		if (!ret)
-			return false;
-	}
+        /* Draw entity */
+        ret = entity->Draw();
+        if (!ret) return false;
+    }
 
-	/* Draw selectable texts */
-	foreach(SelectableText, it2) {
-		CText *Text  = (*it2).first;
-		CPoint Point = Text->Point;
-		string text  = Text->Text;
-		
-		
-		/* Defacult colour */
-		SDL_Color Color = NoSelectedColor;
+    /* Draw selectable texts */
+    foreach(mSelectableText, it2) {
+        Text  *text  = (*it2).first;
+        Point  point = text->mPoint;
+        string str   = text->mText;
+        
+        
+        /* Defacult colour */
+        SDL_Color color = mNoSelectedColor;
 
-		/* Change colour */
-		if (Selected == Text)
-			Color = SelectedColor;
-			
-		/* Draw text */
-		ret = Font.Render(Color, text, Point.GetX(), Point.GetY());
-		if (!ret)
-			return false;
-	}
+        /* Change colour */
+        if (mpSelected == text) {
+            color = mSelectedColor;
+        }
+            
+        /* Draw text */
+        ret = mFont.Render(color, str, point.GetX(), point.GetY());
+        if (!ret) return false;
+    }
 
-	/* Draw non selectable texts */
-	foreach(NoSelectableText, it3) {
-		CText *Text  = *it3;
-		CPoint Point = Text->Point;
-		string text  = Text->Text;
-			
-		/* Draw text */
-		ret = Font.Render(NoSelectedColor, text, Point.GetX(), Point.GetY());
-		if (!ret)
-			return false;
-	}
-	
-	return true;
+    /* Draw non selectable texts */
+    foreach(mNoSelectableText, it3) {
+        Text  *text  = *it3;
+        Point  point = text->mPoint;
+        string str   = text->mText;
+            
+        /* Draw text */
+        ret = mFont.Render(mNoSelectedColor, str, point.GetX(), point.GetY());
+        if (!ret) return false;
+    }
+    
+    return true;
 }

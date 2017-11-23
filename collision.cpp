@@ -1,152 +1,171 @@
-#include "collision.h"
-#include "player.h"
-#include "rect.h"
-#include "utils.h"
+#include "collision.hpp"
+#include "player.hpp"
+#include "rect.hpp"
+#include "utils.hpp"
 
 
-Uint32 CCollision::Invert(Uint32 col)
+Uint32 Colision::Invert(Uint32 col)
 {
-	Uint32 ret = 0;
+    Uint32 ret = 0;
 
-	/* Invert X */
-	if (col & COLLISION_TOP)
-		ret |= COLLISION_BOTTOM;
-	if (col & COLLISION_BOTTOM)
-		ret |= COLLISION_TOP;
+    /* Invert X */
+    if (col & COLLISION_TOP) {
+        ret |= COLLISION_BOTTOM;
+    }
 
-	/* Invert Y */
-	if (col & COLLISION_LEFT)
-		ret |= COLLISION_RIGHT;
-	if (col & COLLISION_RIGHT)
-		ret |= COLLISION_LEFT;
+    if (col & COLLISION_BOTTOM) {
+        ret |= COLLISION_TOP;
+    }
 
-	return ret;
+    /* Invert Y */
+    if (col & COLLISION_LEFT) {
+        ret |= COLLISION_RIGHT;
+    }
+
+    if (col & COLLISION_RIGHT) {
+        ret |= COLLISION_LEFT;
+    }
+
+    return ret;
 }
 
-Uint32 CCollision::Check(CEntity *Entity1, CEntity *Entity2, bool fast)
+Uint32 Colision::Check(Entity *entity1, Entity *entity2, bool fast)
 {
-	CRect R1 = Entity1->GetRect();
-	CRect R2 = Entity2->GetRect();
-	CRect Result;
-	
-	vector<CRect *>::iterator it, jt;
+    Rect r1 = entity1->GetRect();
+    Rect r2 = entity2->GetRect();
+    Rect result;
+    
+    vector<Rect *>::iterator it;
+    vector<Rect *>::iterator jt;
 
-	Uint32 col = 0;
-	bool   ret;
+    Uint32 col = 0;
+    bool   ret;
 
-	/* Same entity */
-	if (Entity1 == Entity2)
-		return 0;
+    /* Same entity */
+    if (entity1 == entity2) return 0;
 
-	/* Check all collisions */
-	foreach (Entity1->Collisions, it) {
-		foreach (Entity2->Collisions, jt) {
-			CRect *Rect1 = *it;
-			CRect *Rect2 = *jt;
-			
-			Rect1->Add(&R1);
-			Rect2->Add(&R2);
-		
-			/* Check intersection */
-			ret = Rect1->Intersection(Rect2, Result);
-			if (!ret)
-				continue;
-			
-			/* X collision */
-			if (Result.GetWidth() < Result.GetHeight()) {
-				if (Rect1->GetX() == Result.GetX())
-					col |= COLLISION_LEFT;
-				if (Rect2->GetX() == Result.GetX())
-					col |= COLLISION_RIGHT;
-			}
-		 
-			/* Y collision */
-			if (Result.GetWidth() >= Result.GetHeight()) {
-				if (Rect1->GetY() == Result.GetY())
-					col |= COLLISION_BOTTOM;
-				if (Rect2->GetY() == Result.GetY())
-					col |= COLLISION_TOP;
-			}
-			
-			/* If collision exists and is a fast check */
-			if (col && fast)
-				return col;
-		}
-	}
+    /* Check all collisions */
+    foreach (entity1->mCollisions, it) {
+        foreach (entity2->mCollisions, jt) {
+            Rect *rect1 = *it;
+            Rect *rect2 = *jt;
+            
+            rect1->Add(&r1);
+            rect2->Add(&r2);
+        
+            /* Check intersection */
+            ret = rect1->Intersection(rect2, result);
+            if (!ret) continue;
+            
+            /* X collision */
+            if (result.GetWidth() < result.GetHeight()) {
+                if (rect1->GetX() == result.GetX()) {
+                    col |= COLLISION_LEFT;
+                }
 
-	return col;
+                if (rect2->GetX() == result.GetX()) {
+                    col |= COLLISION_RIGHT;
+                }
+            }
+         
+            /* Y collision */
+            if (result.GetWidth() >= result.GetHeight()) {
+                if (rect1->GetY() == result.GetY()) {
+                    col |= COLLISION_BOTTOM;
+                }
+                
+                if (rect2->GetY() == result.GetY()) {
+                    col |= COLLISION_TOP;
+                }
+            }
+            
+            /* If collision exists and is a fast check */
+            if (col && fast) return col;
+        }
+    }
+
+    return col;
 }
 
-Uint32 CCollision::Handle(CEntity *Entity1, CEntity *Entity2, bool fast)
+Uint32 Colision::Handle(Entity *entity1, Entity *entity2, bool fast)
 {
-	Uint32 col = 0;
+    Uint32 col = 0;
 
-	/* Entity dead */
-	if (Entity2->GetState() & ENTITY_DEAD)
-		return 0;
+    /* Entity dead */
+    if (entity2->GetState() & ENTITY_DEAD) {
+        return 0;
+    }
 
-	/* collision check */
-	col = Check(Entity1, Entity2, fast);
+    /* collision check */
+    col = Check(entity1, entity2, fast);
 
-	/* collision detected */
-	if (col) {
-		Uint32 tmp;
+    /* collision detected */
+    if (col) {
+        Uint32 tmp;
 
-		/* Invert bitmap */
-		tmp = Invert(col);
+        /* Invert bitmap */
+        tmp = Invert(col);
 
-		/* Handle collision */
-		Entity1->Collision(Entity2, col);
-		Entity2->Collision(Entity1, tmp);
+        /* Handle collision */
+        entity1->Collision(entity2, col);
+        entity2->Collision(entity1, tmp);
 
-		/* Entity died */
-		if (Entity2->GetState() & ENTITY_DEAD)
-			return 0;
-	}	
+        /* Entity died */
+        if (entity2->GetState() & ENTITY_DEAD) {
+            return 0;
+        }
+    }	
 
-	return col;
+    return col;
 }
 
-Uint32 CCollision::CheckLevel(CEntity *Entity, CLevel *Level)
+Uint32 Colision::CheckLevel(Entity *entity, Level *level)
 {
-	vector<CEntity *>::iterator it;
+    vector<Entity *>::iterator it;
 
-	CRect  Rect = Entity->GetRect();
-	Uint32 col  = 0;
+    Rect   Rect = entity->GetRect();
+    Uint32 col  = 0;
 
-	/* Limits collision */
-	if (Rect.GetX() <= 0)
-		col |= COLLISION_LEFT;
-	if ((Rect.GetX() + Rect.GetWidth()) >= Level->GetWidth())
-		col |= COLLISION_RIGHT;
+    /* Limits collision */
+    if (Rect.GetX() <= 0) {
+        col |= COLLISION_LEFT;
+    }
 
-	/* Entity collision */
-	foreach (Level->EntityList, it) {
-		CEntity *Target = *it;
+    if ((Rect.GetX() + Rect.GetWidth()) >= level->GetWidth()) {
+        col |= COLLISION_RIGHT;
+    }
 
-		/* Handle collision */
-		if (Target->GetCollidable())
-			col |= Handle(Entity, Target, false);
-	}
+    /* Entity collision */
+    foreach (level->mEntityList, it) {
+        Entity *Target = *it;
 
-	return col;
+        /* Handle collision */
+        if (Target->GetCollidable()) {
+            col |= Handle(entity, Target, false);
+        }
+    }
+
+    return col;
 }
 
-Uint32 CCollision::Detect(CEntity *Entity)
+Uint32 Colision::Detect(Entity *entity)
 {
-	Uint32 col = 0;
+    Uint32 col = 0;
 
-	/* Dead entity */
-	if (Entity->GetState() & ENTITY_DEAD)
-		return 0;
+    /* Dead entity */
+    if (entity->GetState() & ENTITY_DEAD) {
+        return 0;
+    }
 
-	/* Level collisions */
-	if (pLevel)
-		col |= CheckLevel(Entity, pLevel);
+    /* Level collisions */
+    if (gpLevel) {
+        col |= CheckLevel(entity, gpLevel);
+    }
 
-	/* Player collision */
-	if (pPlayer)
-		col |= Handle(Entity, pPlayer);
+    /* Player collision */
+    if (gpPlayer) {
+        col |= Handle(entity, gpPlayer);
+    }
 
-	return col;
+    return col;
 }

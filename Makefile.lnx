@@ -1,0 +1,77 @@
+# C/C++ compiler
+CC		= gcc
+CXX		= g++
+
+# Directories
+RES 		= 
+INCDIRS		= -I/usr/include/freetype -I/usr/include/freetype/config
+LIBDIRS		=
+
+# Includes/Libraries
+INCLUDE		= -I/usr/include/freetype -I/usr/include/freetype/config
+LIBS		= $(foreach dir, $(LIBDIRS), -L$(dir))
+
+# C/C++ flags
+CFLAGS		= -O3 -Wall -std=c99 $(INCLUDE)
+CXXFLAGS	= -O3 -Wall $(INCLUDE)
+
+# Linker flags
+LDFLAGS		= $(LIBS) -lftgl -lpng -lGL -lGLU -lSDLmain -lSDL_image -lSDL_mixer -lSDL
+
+# Objects
+OBJS	= \
+	ai.o		\
+	animation.o	\
+	audio.o		\
+	camera.o	\
+	character.o	\
+	collision.o	\
+	credits.o	\
+	enemy.o		\
+	engine.o	\
+	entity.o	\
+	font.o		\
+	hud.o		\
+	image.o		\
+	item.o		\
+	joystick.o		\
+	keyboard.o		\
+	level.o		\
+	menu.o		\
+	music.o		\
+	player.o	\
+	point.o		\
+	rect.o		\
+	sample.o	\
+	script.o	\
+	storyboard.o	\
+	surface.o	\
+	texture.o	\
+	timer.o		\
+	video.o		\
+	weapon.o		\
+	main.o		\
+	$(RES)
+
+# Executable target
+TARGET	= ArcadEngine
+
+
+# Compile target
+$(TARGET): $(OBJS)
+	@echo -e "   LD\t$(notdir $(TARGET))"
+	@$(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS)
+
+# Compile objects
+%.o: %.c
+	@echo -e "   CC\t$(notdir $<)"
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	@echo -e "   CXX\t$(notdir $<)"
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Clean data
+clean:
+	@echo -e "Cleaning..."
+	@rm -f *.o $(TARGET)

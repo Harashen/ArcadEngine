@@ -1,9 +1,10 @@
 # C/C++ compiler
-CC		?= gcc
-CXX		?= g++
+CC		= gcc
+CXX		= g++
 
 # Directories
-INCDIRS		= . /usr/include/freetype2
+RES 		= ArcadEngine_private.res
+INCDIRS		= . /mingw/include/freetype2
 LIBDIRS		=
 
 # Includes/Libraries
@@ -15,19 +16,17 @@ CFLAGS		= -O3 -Wall -std=c99 $(INCLUDE)
 CXXFLAGS	= -O3 -Wall $(INCLUDE)
 
 # Linker flags
-LDFLAGS		= $(LIBS) -lftgl -lpng -lrt -lGL -lGLU -lSDL_image -lSDL_mixer -lSDL
+LDFLAGS		= $(LIBS) -lftgl -lpng -lopengl32 -lglu32 -lmingw32 -lSDLmain -lSDL_image -lSDL_mixer -lSDL
 
 # Objects
 OBJS	= \
 	ai.o		\
 	animation.o	\
 	audio.o		\
-	bullet.o	\
 	camera.o	\
 	character.o	\
 	collision.o	\
-	color.o		\
-	console.o	\
+	log.o   \
 	credits.o	\
 	enemy.o		\
 	engine.o	\
@@ -35,28 +34,28 @@ OBJS	= \
 	font.o		\
 	hud.o		\
 	image.o		\
-	input.o		\
 	item.o		\
+	joystick.o	\
+	keyboard.o	\
 	level.o		\
 	menu.o		\
-	movie.o		\
 	music.o		\
-	object.o	\
 	player.o	\
+	point.o		\
 	rect.o		\
-	resource.o	\
 	sample.o	\
 	script.o	\
-	sdl_ffmpeg.o	\
 	storyboard.o	\
 	surface.o	\
 	texture.o	\
 	timer.o		\
 	video.o		\
-	main.o
+	weapon.o	\
+	main.o		\
+	$(RES)
 
 # Executable target
-TARGET	= litEngine
+TARGET	= ArcadEngine.exe
 
 
 # Compile target
@@ -76,4 +75,4 @@ $(TARGET): $(OBJS)
 # Clean data
 clean:
 	@echo -e "Cleaning..."
-	@rm -f *.o $(TARGET)
+	@del -f *.o $(TARGET)

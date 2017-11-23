@@ -1,335 +1,332 @@
 #include <boost/format.hpp>
 
-#include "enemy.h"
-#include "item.h"
-#include "level.h"
-#include "script.h"
-#include "utils.h"
+#include "level.hpp"
+#include "enemy.hpp"
+#include "item.hpp"
+#include "script.hpp"
+#include "utils.hpp"
 
 using namespace boost;
 
 
 /* Level handler */
-CLevel *pLevel = NULL;
+Level *gpLevel = NULL;
 
 
-CLevel::CLevel(void)
+Level::Level(void)
 {
-	/* Initialize variables */
-	Loaded   = false;
-	Finished = false;
-	Gravity  = 0.0;
-	Score    = 0;
+    /* Initialize variables */
+    mLoaded   = false;
+    mFinished = false;
+    mGravity  = 0.0;
+    mScore    = 0;
 
-	/* Reset */
-	Reset();
+    /* Reset */
+    Reset();
 }
 
-CLevel::~CLevel(void)
+Level::~Level(void)
 {
-	/* Unload level */
-	Unload();
+    /* Unload level */
+    Unload();
 }
 
-void CLevel::SetActive(void)
+void Level::SetActive(void)
 {
-	/* Set active level */
-	pLevel = this;
+    /* Set active level */
+    gpLevel = this;
 }
 
-void CLevel::Reset(void)
+void Level::Reset(void)
 {
-	vector<CEntity *>::iterator it;
+    vector<Entity *>::iterator it;
 
-	/* Reset entities */
-	foreach (EntityList, it) {
-		CEntity *Entity = *it;
+    /* Reset entities */
+    foreach (mEntityList, it) {
+        Entity *pEntity = *it;
 
-		/* Reset entity */
-		Entity->Reset();
-	}
+        /* Reset entity */
+        pEntity->Reset();
+    }
 
-	/* Reset variables */
-	Finished = false;
-	Score    = 0;
+    /* Reset variables */
+    mFinished = false;
+    mScore    = 0;
 }
 
-bool CLevel::LoadEntities(void)
+bool Level::LoadEntities(void)
 {
-	CScript Script;
-	Uint32  entities;
-	
-	bool ret;
-
-	/* Load entities script */
-	ret = Script.Load(Basepath + "entities.ini");
-	if (!ret)
-		return false;
-
-	/* Number of entities */
-	entities = Script.GetValue<Uint32>("Entities");
-
-	/* Create entities */
-	for (Uint32 i = 0; i < entities; i++) {
-		CEntity *Entity = NULL;
-		string   path, sufix, type;
-
-		/* Generate sufix */
-		sufix = str(format("[%d]") % i);
-
-		/* Get entity info */
-		type = Script.GetString("Type" + sufix);
-
-		/* Create entity */
-		if (!type.compare("Enemy"))
-			Entity = new CEnemy;
-		if (!type.compare("Entity"))
-			Entity = new CEntity;
-		if (!type.compare("Item"))
-			Entity = new CItem;
-
-		/* Entity not created */
-		if (!Entity)
-			continue;
-
-		/* Push entity */
-		EntityList.push_back(Entity);
-		
-		/* Get entity path */
-		path = Script.GetString("Path" + sufix);
-		
-		/* Set entity path */
-		Entity->SetBasepath(Basepath);
-
-		/* Load entity */
-		ret = Entity->Load(Basepath + path);
-		if (!ret)
-			return false;
-
-		if (!type.compare("Enemy"))
-			Score += Entity->GetPoints();
-	}
-
-	return true;
-}
-
-bool CLevel::LoadSettings(string filepath)
-{
-	CScript Script;
-	bool    ret;
-
-	/* Load script */
-	ret = Script.Load(filepath);
-	if (!ret)
-		return false;
-
-	/* Set dimensions */
-	Width    = Script.GetValue<Uint16>("Width");
-	Height   = Script.GetValue<Uint16>("Height");
-
-	/* Set forces */
-	Friction = Script.GetValue<float>("Friction");
-	Gravity  = Script.GetValue<float>("Gravity");
-
-	/* Set player position */
-	PlayerX  = Script.GetValue<float>("PlayerX");
-	PlayerY  = Script.GetValue<float>("PlayerY");
-	
-	/* Set entities path */
-	Basepath = Script.GetString("Entities.Path");
-
-	return true;
-}
-
-bool CLevel::Load(string filepath)
-{
-	bool ret;
-	
-	/* Reset score */
-	Score = 0;
-	
-	/* Load settings */
-	ret = LoadSettings(filepath);
-	if (!ret) {
-		/* Unload level */
-		Unload();
-
-		return false;
-	}
-
-	/* Load entities */
-	ret = LoadEntities();
-	if (!ret){
-		/* Unload level */
-		Unload();
-
-		return false;
-	}
-
-	/* Set loaded */
-	Loaded = true;
-
-	return true;
-}
-
-void CLevel::Unload(void)
-{
-	/* Not loaded */
-	//if (!Loaded)
-		//return;
-
-	/* Destroy entities */
-	while (!EntityList.empty()) {
-		CEntity *Entity;
-
-		/* Pop entity */
-		Entity = EntityList.back();
-		EntityList.pop_back();
-
-		/* Free memory */
-		delete Entity;
-	}
-
-	/* Unset loaded */
-	Loaded   = false;
-	Finished = false;
-	Score    = 0;
-}
-
-void CLevel::Update(void)
-{
-	vector<CEntity *>::iterator it;
-
-	Uint32  nextPosition[2];
-    Uint16  parent = 0;
-	Uint16  value  = 0;
-    CRect   Rect;
+    Script script;
+    Uint32 entities;
     
-    Uint16  motion = DEFAULT;
+    bool ret;
 
-	/* Check entities */
-	foreach (EntityList, it) {
-		CEntity *Entity = *it;
-		
-		/* Entity dead and inactive */
-		if ((Entity->GetState() & ENTITY_DEAD) && (Entity->GetId() == 0))
-            continue;
+    /* Load entities script */
+    ret = script.Load(mBasepath + "entities.ini");
+    if (!ret) return false;
+
+    /* Number of entities */
+    entities = script.GetValue<Uint32>("Entities");
+
+    /* Create entities */
+    for (Uint32 i = 0; i < entities; i++) {
+        Entity *pEntity = NULL;
+
+        /* Generate sufix */
+        string sufix = str(format("[%d]") % i);
+
+        /* Get entity info */
+        string type = script.GetString("Type" + sufix);
+
+        /* Create entity */
+        if (!type.compare("Enemy"))  pEntity = new Enemy;
+        if (!type.compare("Entity")) pEntity = new Entity;
+        if (!type.compare("Item"))   pEntity = new Item;
+
+        /* Entity not created */
+        if (!pEntity) continue;
+
+        /* Push entity */
+        mEntityList.push_back(pEntity);
         
-		/* Entity dead and active */
-        if ((Entity->GetState() & ENTITY_DEAD) && (Entity->GetId() != 0)) {
-            parent = Entity->GetId();
-            Entity->SetId(0);
+        /* Get entity path */
+        string path = script.GetString("Path" + sufix);
+        
+        /* Set entity path */
+        pEntity->SetBasepath(mBasepath);
+
+        /* Load entity */
+        ret = pEntity->Load(mBasepath + path);
+        if (!ret) return false;
+
+        if (!type.compare("Enemy")) {
+            mScore += pEntity->GetPoints();
+        }
+    }
+
+    return true;
+}
+
+bool Level::LoadSettings(string filepath)
+{
+    Script script;
+    bool   ret;
+
+    /* Load script */
+    ret = script.Load(filepath);
+    if (!ret) return false;
+
+    /* Set dimensions */
+    mWidth  = script.GetValue<Uint16>("Width");
+    mHeight = script.GetValue<Uint16>("Height");
+
+    /* Set forces */
+    mFriction = script.GetValue<float>("Friction");
+    mGravity  = script.GetValue<float>("Gravity");
+
+    /* Set player position */
+    mPlayerX = script.GetValue<float>("PlayerX");
+    mPlayerY = script.GetValue<float>("PlayerY");
+    
+    /* Set entities path */
+    mBasepath = script.GetString("Entities.Path");
+
+    return true;
+}
+
+bool Level::Load(string filepath)
+{
+    bool ret;
+    
+    /* Reset score */
+    mScore = 0;
+    
+    /* Load settings */
+    ret = LoadSettings(filepath);
+    if (!ret) {
+        /* Unload level */
+        Unload();
+
+        return false;
+    }
+
+    /* Load entities */
+    ret = LoadEntities();
+    if (!ret) {
+        /* Unload level */
+        Unload();
+
+        return false;
+    }
+
+    /* Set loaded */
+    mLoaded = true;
+
+    return true;
+}
+
+void Level::Unload(void)
+{
+    /* Not loaded */
+    //if (!Loaded)
+        //return;
+
+    /* Destroy entities */
+    while (!mEntityList.empty()) {
+        Entity *pEntity;
+
+        /* Pop entity */
+        pEntity = mEntityList.back();
+        mEntityList.pop_back();
+
+        /* Free memory */
+        delete pEntity;
+    }
+
+    /* Unset loaded */
+    mLoaded   = false;
+    mFinished = false;
+    mScore    = 0;
+}
+
+void Level::Update(void)
+{
+    vector<Entity *>::iterator it;
+
+    Uint32 nextPosition[2];
+    Uint16 parent = 0;
+    Uint16 value  = 0;
+    Rect   rect;
+    
+    Uint16 motion = DEFAULT;
+
+    /* Check entities */
+    foreach (mEntityList, it) {
+        Entity *pEntity = *it;
+        
+        /* Entity dead and inactive */
+        if ((pEntity->GetState() & ENTITY_DEAD) && (pEntity->GetId() == 0)) {
+            continue;
+        }
+        
+        /* Entity dead and active */
+        if ((pEntity->GetState() & ENTITY_DEAD) && (pEntity->GetId() != 0)) {
+            parent = pEntity->GetId();
+            pEntity->SetId(0);
             
-            Rect = Entity->GetRect();
-            Uint16 number = 2 * Entity->GetEntityNumber();
-			
+            rect = pEntity->GetRect();
+            Uint16 number = 2 * pEntity->GetEntityNumber();
+            
             nextPosition[0] = number;
             nextPosition[1] = number + 1;
             
-			/* Set motion */
-            motion = Entity->GetMotion();
+            /* Set motion */
+            motion = pEntity->GetMotion();
             motion += ENTITY_INACTIVE;
-			
-			value = 2;
+            
+            value = 2;
             
             continue;
         }
 
-		/* Born child */
-		if ((value != 0) && (parent ==  Entity->GetId())) {
+        /* Born child */
+        if (value != 0 && parent == pEntity->GetId()) {
             for (int i = value; i >= 0; i--) {
-				Uint16 entityNumber = Entity->GetEntityNumber();
-				
-				/* Check if is child */
-                if (nextPosition[i] ==  entityNumber) {
-                    Entity->SetState(ENTITY_IDLE);
-					
-                    float x = Rect.GetX();
-                    float y = Rect.GetY();
+                Uint16 entityNumber = pEntity->GetEntityNumber();
+                
+                /* Check if is child */
+                if (nextPosition[i] == entityNumber) {
+                    pEntity->SetState(ENTITY_IDLE);
                     
-					/* Right child */
-                    if (entityNumber % 2 == 0)
-                        x += Rect.GetWidth() * 0.5;
+                    float x = rect.GetX();
+                    float y = rect.GetY();
+                    
+                    /* Right child */
+                    if (entityNumber % 2 == 0) {
+                        x += rect.GetWidth() * 0.5;
+                    }
                         
-                    y += Rect.GetHeight() * 0.75;
+                    y += rect.GetHeight() * 0.75;
                     
-					/* Configure entity */
-                    Entity->SetStart(x, y);
-                    Entity->ResetRect();
-                    Entity->SetMotion(motion);
+                    /* Configure entity */
+                    pEntity->SetStart(x, y);
+                    pEntity->ResetRect();
+                    pEntity->SetMotion(motion);
                     
                     value--;
                 }
             }
         }
-		
-		if (Entity->GetState() & ENTITY_INVISIBLE)
-            continue;
         
-		/* Update entity */
-        Entity->Update();
-	}
-}
-
-bool CLevel::Draw(bool idle)
-{
-	vector<CEntity *>::iterator it;
-
-	/* No entities */
-	if (EntityList.empty())
-		return false;
-
-	/* Level entities */
-	foreach (EntityList, it) {
-		CEntity *Entity = *it;
-		
-		if (Entity->GetState() & ENTITY_INVISIBLE)
+        if (pEntity->GetState() & ENTITY_INVISIBLE) {
             continue;
-
-		/* Draw entity */
-		Entity->Draw(idle);
-	}
-
-	return true;
+        }
+        
+        /* Update entity */
+        pEntity->Update();
+    }
 }
 
-float CLevel::GetFriction(void)
+bool Level::Draw(bool idle)
 {
-	return Friction;
+    vector<Entity *>::iterator it;
+
+    /* No entities */
+    if (mEntityList.empty()) return false;
+
+    /* Level entities */
+    foreach (mEntityList, it) {
+        Entity *pEntity = *it;
+        
+        if (pEntity->GetState() & ENTITY_INVISIBLE) {
+            continue;
+        }
+
+        /* Draw entity */
+        pEntity->Draw(idle);
+    }
+
+    return true;
 }
 
-float CLevel::GetGravity(void)
+float Level::GetFriction(void)
 {
-	return Gravity;
+    return mFriction;
 }
 
-Uint16 CLevel::GetWidth(void)
+float Level::GetGravity(void)
 {
-	return Width;
+    return mGravity;
 }
 
-Uint16 CLevel::GetHeight(void)
+Uint16 Level::GetWidth(void)
 {
-	return Height;
+    return mWidth;
 }
 
-float CLevel::GetPlayerX(void)
+Uint16 Level::GetHeight(void)
 {
-	return PlayerX;
+    return mHeight;
 }
 
-float CLevel::GetPlayerY(void)
+float Level::GetPlayerX(void)
 {
-	return PlayerY;
+    return mPlayerX;
 }
 
-bool CLevel::GetFinished(Uint32 value)
+float Level::GetPlayerY(void)
 {
-	/* Level finished */
-	if (Score <= value)
-		Finished = true;
-	else
-		Finished = false;
-		
-	return Finished;
+    return mPlayerY;
+}
+
+bool Level::GetFinished(Uint32 value)
+{
+    /* Level finished */
+    if (mScore <= value) {
+        mFinished = true;
+    } else {
+        mFinished = false;
+    }
+        
+    return mFinished;
 }

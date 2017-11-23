@@ -1,34 +1,34 @@
-#include "keyboard.h"
+#include "keyboard.hpp"
 
-CKeyboard::CKeyboard()
+Keyboard::Keyboard()
 {
-	/* Enable key repeat */
+    /* Enable key repeat */
     SDL_EnableKeyRepeat (SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
-void CKeyboard::Listen(Uint32 key, bool pressed)
+void Keyboard::Listen(Uint32 key, bool pressed)
 {        
-	/* Set state */
-	if (pressed) {
-		Keys[key] = true;
-		KeysPressed[key] = SDL_GetTicks();
-	} 
-	else {
-		Keys[key] = false;
-		KeysPressed[key] = 0;
-	}
+    /* Set state */
+    if (pressed) {
+        mKeys[key] = true;
+        mKeysPressed[key] = SDL_GetTicks();
+    } else {
+        mKeys[key] = false;
+        mKeysPressed[key] = 0;
+    }
 }
 
-bool CKeyboard::IsPressed(Uint32 key, bool once)
+bool Keyboard::IsPressed(Uint32 key, bool once)
 {
     bool ret;
     
     /* Get key state */
-    ret = Keys[key];
+    ret = mKeys[key];
     
     /* Clear key state */
-    if (once)
-        Keys[key] = false;
+    if (once) {
+        mKeys[key] = false;
+    }
     
     return ret;
 }

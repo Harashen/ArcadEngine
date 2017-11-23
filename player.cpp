@@ -1,203 +1,204 @@
-#include "collision.h"
-#include "player.h"
+#include "player.hpp"
+#include "collision.hpp"
 
 /* Player handler */
-CPlayer *pPlayer = NULL;
+Player *gpPlayer = NULL;
 
 
-CPlayer::CPlayer(void)
+Player::Player(void)
 {
-	/* Set type */
-	Type = "Player";
+    /* Set type */
+    mType = "Player";
 
-	/* Initialize variables */
-	Collidable = true;
-	Score      = 0;
-	LevelScore = 0;
-	Lives	   = 0;
-	Bullets    = 3;
-	
-	Weapon = new CWeapon[Bullets];
-}
-
-CPlayer::~CPlayer(void)
-{
-	if (Weapon)
-		delete Weapon;
-}
-
-void CPlayer::SetActive(void)
-{
-	/* Active player */
-	pPlayer = this;
-}
-
-void CPlayer::Collision(CEntity *Entity, Uint32 &col)
-{
-	string type = Entity->GetType();
-
-	/* Default handler */
-	CEntity::Collision(Entity, col);
-
-	/* Collision with enemy */
-	if (!type.compare("Enemy")) {
-		if (col) {
-			/* Kill player */
-			Kill();
-			Sound.Play(0);
-			
-			/* Lose life */
-			LoseLife();
-		}
-	}
-
-	/* Collision with item */
-	if (!type.compare("Item"))
-		Score += Entity->GetPoints();
-}
-
-bool CPlayer::Load(string filepath)
-{
+    /* Initialize variables */
+    mCollidable = true;
+    mScore      = 0;
+    mLevelScore = 0;
+    mLives	    = 0;
+    mBullets    = 3;
     
+    mpWeapon = new Weapon[mBullets];
+}
+
+Player::~Player(void)
+{
+    if (mpWeapon) delete mpWeapon;
+}
+
+void Player::SetActive(void)
+{
+    /* Active player */
+    gpPlayer = this;
+}
+
+void Player::Collision(Entity *entity, Uint32 &col)
+{
+    string type = entity->GetType();
+
+    /* Default handler */
+    Entity::Collision(entity, col);
+
+    /* Collision with enemy */
+    if (!type.compare("Enemy")) {
+        if (col) {
+            /* Kill player */
+            Kill();
+            mSound.Play(0);
+            
+            /* Lose life */
+            LoseLife();
+        }
+    }
+
+    /* Collision with item */
+    if (!type.compare("Item")) {
+        mScore += entity->GetPoints();
+    }
+}
+
+bool Player::Load(string filepath)
+{    
     SetBasepath(filepath);
-	
-	/* Load player configuration */
-    bool ret = CCharacter::Load(filepath + "player.ini");
-    if (!ret)
-        return false;
     
-    for (int i = 0; i < Bullets; i++)
-        Weapon[i].SetBasepath(filepath);
-		
+    /* Load player configuration */
+    bool ret = Character::Load(filepath + "player.ini");
+    if (!ret) return false;
+    
+    for (int i = 0; i < mBullets; i++) {
+        mpWeapon[i].SetBasepath(filepath);
+    }
+        
     LoadWeapon(filepath + "weapon.ini");
     
     return true;
 }
-	
-void CPlayer::LoadWeapon(string filepath)
+    
+void Player::LoadWeapon(string filepath)
 {
-	Weapon[0].Load(filepath);
-	
-	for(int i = 1; i < Bullets; i++)
-		Weapon[i] = Weapon[0];
+    mpWeapon[0].Load(filepath);
+    
+    for (int i = 1; i < mBullets; i++) {
+        mpWeapon[i] = mpWeapon[0];
+    }
 }
 
-void CPlayer::Shot(void)
+void Player::Shot(void)
 {
-	/* Already dead */
-	if (State == ENTITY_DEAD)
-		return;
-		
-	for (int i = 0; i < Bullets; i++) {
-		bool  sound = false;
-        CRect RectW = Rect;
+    /* Already dead */
+    if (mState == ENTITY_DEAD) return;
+        
+    for (int i = 0; i < mBullets; i++) {
+        bool sound = false;
+        Rect rectW = mRect;
         
         if (i == 0) {
             sound = true;
-            RectW.SetY(RectW.GetY() + 10);
+            rectW.SetY(rectW.GetY() + 10);
+        } else {
+            float x = rectW.GetX();
+            
+            /* Right/Left bullets */
+            if (i % 2 == 0) {
+                rectW.SetX(x + 10);
+            } else {
+                rectW.SetX(x - 10);
+            }
         }
-        else {
-            float x = RectW.GetX();
-			
-			/* Right/Left bullets */
-            if (i % 2 == 0)
-                RectW.SetX(x + 10);
-            else
-                RectW.SetX(x - 10);
-        }
-		
-		/* Shot bullet */
-        if (Weapon[i].Shot(RectW, sound) == false)
+        
+        /* Shot bullet */
+        if (mpWeapon[i].Shot(rectW, sound) == false) {
             break;
-	}
+        }
+    }
 }
 
-void CPlayer::Reset(void)
+void Player::Reset(void)
 {
-	/* Reset weapon */
-	for (int i = 0; i < Bullets; i++)
-		Weapon[i].SetState(ENTITY_DEAD);
-	
-	/* Reset character */
-	CCharacter::Reset();
-	
-	LevelScore = 0;
-	State      = ENTITY_IDLE;
-	
-	/* Stop sound */
-	Sound.Stop();
+    /* Reset weapon */
+    for (int i = 0; i < mBullets; i++) {
+        mpWeapon[i].SetState(ENTITY_DEAD);
+    }
+    
+    /* Reset character */
+    Character::Reset();
+    
+    mLevelScore = 0;
+    mState      = ENTITY_IDLE;
+    
+    /* Stop sound */
+    mSound.Stop();
 }
 
-bool CPlayer::Update(void)
+bool Player::Update(void)
 {	
-	/* Update character */
-	CCharacter::Update();
-	
-	/* Already dead */
-	if (State & ENTITY_DEAD)
-		return false;
-	
-	/* Update bullets */
-	for (int i = 0; i < Bullets; i++) {
-		bool ret = Weapon[i].Update();
-		
-		/* Bullets dead */
-		if (!ret) {
-			/* Reset weapon */
-			for (int j = 0; j < Bullets; j++)
-				Weapon[j].SetState(ENTITY_DEAD);
-			
-			return true;
-		}
-	}
-	
-	return true;
+    /* Update character */
+    Character::Update();
+    
+    /* Already dead */
+    if (mState & ENTITY_DEAD) return false;
+    
+    /* Update bullets */
+    for (int i = 0; i < mBullets; i++) {
+        bool ret = mpWeapon[i].Update();
+        
+        /* Bullets dead */
+        if (!ret) {
+            /* Reset weapon */
+            for (int j = 0; j < mBullets; j++) {
+                mpWeapon[j].SetState(ENTITY_DEAD);
+            }
+            
+            return true;
+        }
+    }
+    
+    return true;
 }
 
-bool CPlayer::Draw(bool idle)
+bool Player::Draw(bool idle)
 {	
-	/* Draw bullets */
-	for (int i = 0; i < Bullets; i++)
-		Weapon[i].Draw();
-		
-	/* Draw character */
-	return CCharacter::Draw(idle);
+    /* Draw bullets */
+    for (int i = 0; i < mBullets; i++) {
+        mpWeapon[i].Draw();
+    }
+        
+    /* Draw character */
+    return Character::Draw(idle);
 }
 
-void CPlayer::LoseLife(void)
+void Player::LoseLife(void)
 {
-	if (Lives > 0)
-		Lives--;
+    if (mLives > 0)	mLives--;
 }
 
-Uint32 CPlayer::GetLevelScore(void)
+Uint32 Player::GetLevelScore(void)
 {
-	return LevelScore;
+    return mLevelScore;
 }
 
-Uint32 CPlayer::GetLives(void)
+Uint32 Player::GetLives(void)
 {
-	return Lives;
+    return mLives;
 }
 
-Uint32 CPlayer::GetScore(void)
+Uint32 Player::GetScore(void)
 {
-	return Score;
+    return mScore;
 }
 
-void CPlayer::SetLives(Uint32 value)
+void Player::SetLives(Uint32 value)
 {
-	Lives = value;
+    mLives = value;
 }
 
-void CPlayer::SetScore(Uint32 value)
+void Player::SetScore(Uint32 value)
 {
-	Score 	   += value;
-	LevelScore += value;
+    mScore 	    += value;
+    mLevelScore += value;
 }
 
-void CPlayer::ResetScore(void)
+void Player::ResetScore(void)
 {
-	Score = 0;
+    mScore = 0;
 }
 

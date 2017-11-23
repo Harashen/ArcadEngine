@@ -1,172 +1,164 @@
-#include "sample.h"
-#include "utils.h"
+#include "sample.hpp"
+#include "utils.hpp"
 
 /* Sample list */
-vector<CSample *> CSample::SampleList;
-SDL_mutex        *CSample::Mutex = NULL;
+vector<Sample *> Sample::mSampleList;
+SDL_mutex        *Sample::mpMutex = NULL;
 
 
-CSample::CSample(void)
+Sample::Sample(void)
 {
-	/* Initialize mutex */
-	if (!Mutex)
-		Mutex = SDL_CreateMutex();
+    /* Initialize mutex */
+    if (!mpMutex) mpMutex = SDL_CreateMutex();
 
-	/* Initialize variables */
-	Channel = -1;
-	Chunk   = NULL;
-	State   = SAMPLE_STOPPED;
+    /* Initialize variables */
+    mChannel = -1;
+    mpChunk  = NULL;
+    mState   = SAMPLE_STOPPED;
 
-	/* Add to list */
-	SampleList.push_back(this);
+    /* Add to list */
+    mSampleList.push_back(this);
 }
 
-CSample::~CSample(void)
+Sample::~Sample(void)
 {
-	vector<CSample *>::iterator it;
+    vector<Sample *>::iterator it;
 
-	/* Unload */
-	Unload();
+    /* Unload */
+    Unload();
 
-	/* Remove from list */
-	foreach (SampleList, it) {
-		CSample *Sample = *it;
+    /* Remove from list */
+    foreach (mSampleList, it) {
+        Sample *sample = *it;
 
-		/* Sample found */
-		if (Sample == this) {
-			SampleList.erase(it);
-			break;
-		}
-	}
+        /* Sample found */
+        if (sample == this) {
+            mSampleList.erase(it);
+            break;
+        }
+    }
 }
 
-void CSample::FinishedCB(Sint32 channel)
+void Sample::FinishedCB(Sint32 channel)
 {
-	vector<CSample *>::iterator it;
+    vector<Sample *>::iterator it;
 
-	/* Lock mutex */
-	SDL_LockMutex(Mutex);
+    /* Lock mutex */
+    SDL_LockMutex(mpMutex);
 
-	/* Find sample */
-	foreach (SampleList, it) {
-		CSample *Sample = *it;
+    /* Find sample */
+    foreach (mSampleList, it) {
+        Sample *sample = *it;
 
-		/* Sample found */
-		if (Sample->Channel == channel) {
-			Sample->State   = SAMPLE_STOPPED;
-			Sample->Channel = -1;
-			break;
-		}
-	}
+        /* Sample found */
+        if (sample->mChannel == channel) {
+            sample->mState   = SAMPLE_STOPPED;
+            sample->mChannel = -1;
+            break;
+        }
+    }
 
-	/* Unlock mutex */
-	SDL_UnlockMutex(Mutex);
+    /* Unlock mutex */
+    SDL_UnlockMutex(mpMutex);
 }
 
-bool CSample::Load(const char *filename)
+bool Sample::Load(const char *filename)
 {
-	/* Unload */
-	Unload();
+    /* Unload */
+    Unload();
 
-	/* Set filepath */
-	Filepath = filename;
+    /* Set filepath */
+    mFilepath = filename;
 
-	/* Load sample */
-	Chunk = Mix_LoadWAV(filename);
+    /* Load sample */
+    mpChunk = Mix_LoadWAV(filename);
 
-	return !!Chunk;
+    return !!mpChunk;
 }
 
-bool CSample::Load(string filename)
+bool Sample::Load(string filename)
 {
-	const char *c = filename.c_str();
+    const char *c = filename.c_str();
 
-	/* Load sample */
-	return Load(c);
+    /* Load sample */
+    return Load(c);
 }
 
-void CSample::Unload(void)
+void Sample::Unload(void)
 {
-	/* Not loaded */
-	if (!Chunk)
-		return;
+    /* Not loaded */
+    if (!mpChunk)	return;
 
-	/* Lock mutex */
-	SDL_LockMutex(Mutex);
+    /* Lock mutex */
+    SDL_LockMutex(mpMutex);
 
-	/* Stop sample */
-	Stop();
+    /* Stop sample */
+    Stop();
 
-	/* Free chunk */
-	Mix_FreeChunk(Chunk);
+    /* Free chunk */
+    Mix_FreeChunk(mpChunk);
 
-	/* Reset variables */
-	Chunk = NULL;
-	Filepath.clear();
+    /* Reset variables */
+    mpChunk = NULL;
+    mFilepath.clear();
 
-	/* Unlock mutex */
-	SDL_UnlockMutex(Mutex);
+    /* Unlock mutex */
+    SDL_UnlockMutex(mpMutex);
 }
 
-bool CSample::Play(Sint32 loops)
+bool Sample::Play(Sint32 loops)
 {
-	/* No sample */
-	if (!Chunk)
-		return false;
+    /* No sample */
+    if (!mpChunk) return false;
 
-	/* Sample is already playing */
-	if (State != SAMPLE_STOPPED)
-		return false;
+    /* Sample is already playing */
+    if (mState != SAMPLE_STOPPED) return false;
 
-	/* Play sample */
-	Channel = Mix_PlayChannel(-1, Chunk, loops);
-	if (Channel < 0)
-		return false;
+    /* Play sample */
+    mChannel = Mix_PlayChannel(-1, mpChunk, loops);
+    if (mChannel < 0) return false;
 
-	/* Set playing state */
-	State = SAMPLE_PLAYING;
+    /* Set playing state */
+    mState = SAMPLE_PLAYING;
 
-	return true;
+    return true;
 }
 
-void CSample::Stop(void)
+void Sample::Stop(void)
 {
-	/* Sample is not playing */
-	if (State != SAMPLE_PLAYING)
-		return;
+    /* Sample is not playing */
+    if (mState != SAMPLE_PLAYING) return;
 
-	/* Stop sample */
-	Mix_HaltChannel(Channel);
+    /* Stop sample */
+    Mix_HaltChannel(mChannel);
 
-	/* Set stopped state */
-	State = SAMPLE_STOPPED;
+    /* Set stopped state */
+    mState = SAMPLE_STOPPED;
 
-	/* Unset channel */
-	Channel = -1;
+    /* Unset channel */
+    mChannel = -1;
 }
 
-void CSample::Pause(void)
+void Sample::Pause(void)
 {
-	/* Sample is not playing */
-	if (State != SAMPLE_PLAYING)
-		return;
+    /* Sample is not playing */
+    if (mState != SAMPLE_PLAYING) return;
 
-	/* Pause sample */
-	Mix_Pause(Channel);
+    /* Pause sample */
+    Mix_Pause(mChannel);
 
-	/* Set paused state */
-	State = SAMPLE_PAUSED;
+    /* Set paused state */
+    mState = SAMPLE_PAUSED;
 }
 
-void CSample::Resume(void)
+void Sample::Resume(void)
 {
-	/* Sample is not paused */
-	if (State != SAMPLE_PAUSED)
-		return;
+    /* Sample is not paused */
+    if (mState != SAMPLE_PAUSED) return;
 
-	/* Resume sample */
-	Mix_Resume(Channel);
+    /* Resume sample */
+    Mix_Resume(mChannel);
 
-	/* Set playing state */
-	State = SAMPLE_PLAYING;
+    /* Set playing state */
+    mState = SAMPLE_PLAYING;
 }

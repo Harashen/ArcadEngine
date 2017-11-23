@@ -1,100 +1,103 @@
-#include "ai.h"
-#include "collision.h"
-#include "level.h"
-#include "utils.h"
+#include "ai.hpp"
+#include "collision.hpp"
+#include "level.hpp"
+#include "utils.hpp"
 
 /* AI handler */
-CAi *pAi = NULL;
+Ai *pAi = NULL;
 
 
-void CAi::SetActive(void)
+void Ai::SetActive(void)
 {
-	/* Set active AI */
-	pAi = this;
+    /* Set active AI */
+    pAi = this;
 }
 
-void CAi::Run(CEntity *Entity)
+void Ai::Run(Entity *entity)
 {
-	Uint32 collision;
-	Uint16 motion = Entity->GetMotion();
+    Uint32 collision;
+    Uint16 motion = entity->GetMotion();
 
-	/* Entity inactive */
-	if (Entity->GetMotion() & ENTITY_INACTIVE) {
+    /* Entity inactive */
+    if (entity->GetMotion() & ENTITY_INACTIVE) {
         motion &= ~ENTITY_INACTIVE;
         motion &= ~ENTITY_RIGHT;
         motion &= ~ENTITY_LEFT;
         
-		/* Start direction */
-        if (Entity->GetEntityNumber() % 2 == 0)
+        /* Start direction */
+        if (entity->GetEntityNumber() % 2 == 0) {
             motion |= ENTITY_RIGHT;
-        else
+        } else {
             motion |= ENTITY_LEFT;
+        }
             
         motion |= ENTITY_DOWN;
         
-		/* Start motion */
-        Entity->SetMotion(motion);
-        Entity->Run();
-		
+        /* Start motion */
+        entity->SetMotion(motion);
+        entity->Run();
+        
         return;
     }
 
-	/* Collision detect */
-	collision = CCollision::Detect(Entity);
+    /* Collision detect */
+    collision = Colision::Detect(entity);
 
-	/* Top collision */
-	if (collision & COLLISION_TOP){
+    /* Top collision */
+    if (collision & COLLISION_TOP) {
         motion &= ~ENTITY_UP;
         motion |=  ENTITY_DOWN;
     }
-	
-	/* Bottom collision */
-	if (collision & COLLISION_BOTTOM){
+    
+    /* Bottom collision */
+    if (collision & COLLISION_BOTTOM) {
         motion &= ~ENTITY_DOWN;
         motion |=  ENTITY_UP;
     }
-		
-	/* Left collision */
-	if (collision & COLLISION_LEFT){
-		motion &= ~ENTITY_LEFT;
+        
+    /* Left collision */
+    if (collision & COLLISION_LEFT) {
+        motion &= ~ENTITY_LEFT;
         motion |=  ENTITY_RIGHT;
     }
-	
-	/* Right collision */
-	if (collision & COLLISION_RIGHT){
+    
+    /* Right collision */
+    if (collision & COLLISION_RIGHT) {
         motion &= ~ENTITY_RIGHT;
         motion |=  ENTITY_LEFT;
     }
-	
-	/* Set motion */
-	Entity->SetMotion(motion);
-	Entity->Run();
+    
+    /* Set motion */
+    entity->SetMotion(motion);
+    entity->Run();
 }
 
-void CAi::Update(void)
+void Ai::Update(void)
 {
-	vector<CEntity *>::iterator it;
+    vector<Entity *>::iterator it;
 
-	/* Level entities */
-	if (pLevel) {
-		foreach (pLevel->EntityList, it) {
-			CEntity *Entity = *it;
-			
-			/* Get type */
-			string type = Entity->GetType();
-			
-			/* Check type */
-			if (type.compare("Enemy") )	
-				continue;
-				
-			Uint16 state = Entity->GetState();
-			
-			/* Check state */
-			if ((state & ENTITY_DEAD) || (state & ENTITY_INVISIBLE))
-				continue;
+    /* Level entities */
+    if (gpLevel) {
+        foreach (gpLevel->mEntityList, it) {
+            Entity *entity = *it;
+            
+            /* Get type */
+            string type = entity->GetType();
+            
+            /* Check type */
+            if (type.compare("Enemy")) {
+                continue;
+            }
+                
+            Uint16 state = entity->GetState();
+            
+            /* Check state */
+            if ((state & ENTITY_DEAD) || (state & ENTITY_INVISIBLE)) {
+                continue;
+            }
 
-			/* Run entity AI */
-			Run(Entity);
-		}
-	}
+            /* Run entity AI */
+            Run(entity);
+        }
+    }
 }

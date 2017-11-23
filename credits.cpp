@@ -1,273 +1,276 @@
 #include <fstream>
-#include "credits.h"
-#include "script.h"
-#include "utils.h"
+
+#include "credits.hpp"
+#include "script.hpp"
+#include "utils.hpp"
 
 
-CCredits::CCredits(void)
+Credits::Credits(void)
 {
-	/* Initialize variables */
-	State = CREDITS_STOPPED;
+    /* Initialize variables */
+    mState = CREDITS_STOPPED;
 }
 
-CCredits::~CCredits(void)
+Credits::~Credits(void)
 {
-	/* Unload */
-	Unload();
+    /* Unload */
+    Unload();
 }
 
-bool CCredits::LoadSettings(string filepath)
+bool Credits::LoadSettings(string filepath)
 {
-	CScript Script;
-	bool    ret;
-	string  fontPath;
-	string  musicPath;
+    Script script;
+    bool   ret;
+    string fontPath;
+    string musicPath;
 
-	/* Load script */
-	ret = Script.Load(filepath + "credits.ini");
-	if (!ret)
-		return false;
-		
-	/* Get font values */
-	fontPath = Script.GetString("Font");
-	Size     = Script.GetValue<Uint16>("Size");
-	Color    = Script.GetColor("Font.Color");
-	
-	/* Load credits font */
-	ret = Font.Load(filepath + fontPath, Size);
-	if (!ret) {
-		/* Unload */
-		Unload();
+    /* Load script */
+    ret = script.Load(filepath + "credits.ini");
+    if (!ret) return false;
+        
+    /* Get font values */
+    fontPath = script.GetString("Font");
+    mSize    = script.GetValue<Uint16>("Size");
+    mColor   = script.GetColor("Font.Color");
 
-		return false;
-	}
-	
-	/* Get background values */
-	Background = Script.GetColor("Background.Color");
-    Alpha      = Script.GetValue<float>("Background.Alpha");
+    /* Load credits font */
+    ret = mFont.Load(filepath + fontPath, mSize);
+    
+    if (!ret) {
+        /* Unload */
+        Unload();
 
-	/* Set attributes */
-	Speed = Script.GetValue<float>("Speed");
-	
-	/* Load music */
-	musicPath = Script.GetString("Music");
-	if (!musicPath.empty())
-		Music.Load(filepath + musicPath);
+        return false;
+    }
+    
+    /* Get background values */
+    mBackground = script.GetColor("Background.Color");
+    mAlpha      = script.GetValue<float>("Background.Alpha");
 
-	return true;
+    /* Set attributes */
+    mSpeed = script.GetValue<float>("Speed");
+    
+    /* Load music */
+    musicPath = script.GetString("Music");
+    
+    if (!musicPath.empty()) {
+        mMusic.Load(filepath + musicPath);
+    }
+
+    return true;
 }
 
-bool CCredits::LoadText(string filepath)
+bool Credits::LoadText(string filepath)
 {
-	CPoint   Point;
-	ifstream File;
-	string   line;
-	
-	bool   ret;
+    Point    point;
+    ifstream File;
+    string   line;	
+    bool     ret;
 
-	/* Prepare path */
-	filepath += "credits.txt";
+    /* Prepare path */
+    filepath += "credits.txt";
     const char *path = filepath.c_str(); 
-	
-	/* Open file */
-	File.open(path);
+    
+    /* Open file */
+    File.open(path);
 
-	/* File not opened */
-	ret = File.is_open();
-	if (!ret)
-		return false;
+    /* File not opened */
+    ret = File.is_open();
+    if (!ret) return false;
 
-	/* Set point */
-	Point.SetPoint(400, 500);
+    /* Set point */
+    point.SetPoint(400, 500);
 
-	/* Read file */
-	while (getline(File, line)) {
-		CText *Txt = new CText;
-		
-		/* Remove not valid lines */
-		if (line[0] == '#')
-			continue;
-			
-		/* Set text position */
-		Txt->Text  = line; 
-		Txt->Point = Point;
-		
-		
-		Text.push_back(Txt);
-		
-		/* Update position */
-		float y = Point.GetY();
-		y -= Size * 2;
-		Point.SetY(y);
-	}
+    /* Read file */
+    while (getline(File, line)) {
+        Text *text = new Text;
+        
+        /* Remove not valid lines */
+        if (line[0] == '#') {
+            continue;
+        }
+            
+        /* Set text position */
+        text->mText  = line; 
+        text->mPoint = point;		
+        
+        mTextVect.push_back(text);
+        
+        /* Update position */
+        float y = point.GetY();
+        y -= mSize * 2;
+        point.SetY(y);
+    }
 
-	/* Close file */
-	File.close();
+    /* Close file */
+    File.close();
 
-	return true;
+    return true;
 }
 
-void CCredits::Unload(void)
+void Credits::Unload(void)
 {
-	vector<CText *>::iterator it;
-	
-	/* Clear text vector */
-	foreach (Text, it) {
-		CText *Temp = *it;
-		
-		delete Temp;
-	}
+    vector<Text *>::iterator it;
+    
+    /* Clear text vector */
+    foreach (mTextVect, it) {
+        Text *temp = *it;
+        
+        delete temp;
+    }
 
-	/* Unload font */
-	Font.Unload();
+    /* Unload font */
+    mFont.Unload();
 
-	/* Unload music */
-	Music.Unload();
+    /* Unload music */
+    mMusic.Unload();
 }
 
-bool CCredits::Load(string filepath)
+bool Credits::Load(string filepath)
 {
-	bool ret;
+    bool ret;
 
-	/* Load settings */
-	ret = LoadSettings(filepath);
-	if (!ret) {
-		/* Unload */
-		Unload();
+    /* Load settings */
+    ret = LoadSettings(filepath);
+    if (!ret) {
+        /* Unload */
+        Unload();
 
-		return false;
-	}
+        return false;
+    }
 
-	/* Load text */
-	ret = LoadText(filepath);
-	if (!ret) {
-		/* Unload */
-		Unload();
+    /* Load text */
+    ret = LoadText(filepath);
+    if (!ret) {
+        /* Unload */
+        Unload();
 
-		return false;
-	}
+        return false;
+    }
 
-	return true;
+    return true;
 }
 
-void CCredits::Reset(void)
+void Credits::Reset(void)
 {
-	/* Reset coordinates */
-	Position.SetX(0);
-	Position.SetY(0);
+    /* Reset coordinates */
+    mPosition.SetX(0);
+    mPosition.SetY(0);
 }
 
-void CCredits::SetScreen(Sint32 width, Sint32 height)
+void Credits::SetScreen(Sint32 width, Sint32 height)
 {
-	/* Set screen rect */
-	ScreenRect.Set(0, 0, width, height);
+    /* Set screen rect */
+    mScreenRect.Set(0, 0, width, height);
 }
 
-bool CCredits::Update(void)
+bool Credits::Update(void)
 {
-	const float step = 0.1;
-	vector<CText *>::iterator it;
-	
-	float i, y;
-	
-	/* Update text */
-	foreach (Text, it) {
-		CText *Temp  = *it;
-		CPoint Point = Temp->Point;
-		
-		/* FIXME */
-		for (i = 0; i < Size; i += step) {
-			y  = Point.GetY();
-			y += i;
-			
-			Point.SetY(y);
-		}
-		(*it)->Point = Point;
-	}
+    const float step = 0.1;
+    vector<Text *>::iterator it;
+    
+    /* Update text */
+    foreach (mTextVect, it) {
+        Text *temp  = *it;
+        Point point = temp->mPoint;
+        
+        /* FIXME */
+        for (float i = 0; i < mSize; i += step) {
+            float y = point.GetY();
+            y += i;
+            
+            point.SetY(y);
+        }
 
-	return true;
+        (*it)->mPoint = point;
+    }
+
+    return true;
 }
 
-bool CCredits::Draw(void)
+bool Credits::Draw(void)
 {
-	vector<CText *>::iterator it;
-	
-	/* Credits not playing/paused */
-	if (State != CREDITS_PLAYING &&
-	    State != CREDITS_PAUSED)
-		return false;
-	
-	/* Draw background colour */
-	ScreenRect.Draw(Background, Alpha);
-	
-	/* Update text */
-	foreach (Text, it) {
-		CText *Temp  = *it;
-		CPoint Point = Temp->Point;
-		float  posY  = Point.GetY();
-		float  posX  = Point.GetX();
-		string text  = Temp->Text;
-		
-		/* Render text */
-		Font.Render(Color, text, posX, posY);
-	}
+    vector<Text *>::iterator it;
+    
+    /* Credits not playing/paused */
+    if (mState != CREDITS_PLAYING && mState != CREDITS_PAUSED) {
 
-	return true;
+        return false;
+    }
+    
+    /* Draw background colour */
+    mScreenRect.Draw(mBackground, mAlpha);
+    
+    /* Update text */
+    foreach (mTextVect, it) {
+        Text  *temp  = *it;
+        Point  point = temp->mPoint;
+        float  posY  = point.GetY();
+        float  posX  = point.GetX();
+        string text  = temp->mText;
+        
+        /* Render text */
+        mFont.Render(mColor, text, posX, posY);
+    }
+
+    return true;
 }
 
-bool CCredits::Play(void)
+bool Credits::Play(void)
 {
-	bool ret;
+    bool ret;
 
-	/* Reset */
-	Reset();
+    /* Reset */
+    Reset();
 
-	/* Play music */
-	ret = Music.Play();
-	if (!ret)
-		return false;
+    /* Play music */
+    ret = mMusic.Play();
+    if (!ret) return false;
 
-	/* Set playing state */
-	State = CREDITS_PLAYING;
+    /* Set playing state */
+    mState = CREDITS_PLAYING;
 
-	return true;
+    return true;
 }
 
-void CCredits::Stop(void)
+void Credits::Stop(void)
 {
-	/* Credits not playing */
-	if (State != CREDITS_PLAYING)
-		return;
+    /* Credits not playing */
+    if (mState != CREDITS_PLAYING) {
+        return;
+    }
 
-	/* Stop music */
-	Music.Stop();
+    /* Stop music */
+    mMusic.Stop();
 
-	/* Set stopped state */
-	State = CREDITS_STOPPED;
+    /* Set stopped state */
+    mState = CREDITS_STOPPED;
 }
 
-void CCredits::Pause(void)
+void Credits::Pause(void)
 {
-	/* Credits not playing */
-	if (State != CREDITS_PLAYING)
-		return;
+    /* Credits not playing */
+    if (mState != CREDITS_PLAYING) {
+        return;
+    }
 
-	/* Pause music */
-	Music.Pause();
+    /* Pause music */
+    mMusic.Pause();
 
-	/* Set paused state */
-	State = CREDITS_PAUSED;
+    /* Set paused state */
+    mState = CREDITS_PAUSED;
 }
 
-void CCredits::Resume(void)
+void Credits::Resume(void)
 {
-	/* Credits not paused */
-	if (State != CREDITS_PAUSED)
-		return;
+    /* Credits not paused */
+    if (mState != CREDITS_PAUSED) {
+        return;
+    }
 
-	/* Resume music */
-	Music.Resume();
+    /* Resume music */
+    mMusic.Resume();
 
-	/* Set playing state */
-	State = CREDITS_PLAYING;
+    /* Set playing state */
+    mState = CREDITS_PLAYING;
 }

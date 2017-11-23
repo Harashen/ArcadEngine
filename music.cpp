@@ -1,170 +1,164 @@
-#include "music.h"
-#include "utils.h"
+#include "music.hpp"
+#include "utils.hpp"
 
 /* Music list */
-vector<CMusic *> CMusic::MusicList;
-SDL_mutex       *CMusic::Mutex = NULL;
+vector<Music *> Music::mMusicList;
+SDL_mutex      *Music::mpMutex = NULL;
 
 
-CMusic::CMusic(void)
+Music::Music(void)
 {
-	/* Initialize mutex */
-	if (!Mutex)
-		Mutex = SDL_CreateMutex();
+    /* Initialize mutex */
+    if (!mpMutex) {
+        mpMutex = SDL_CreateMutex();
+    }
 
-	/* Initialize variables */
-	Music = NULL;
-	State = MUSIC_STOPPED;
+    /* Initialize variables */
+    mpMusic = NULL;
+    mState = MUSIC_STOPPED;
 
-	/* Add to list */
-	MusicList.push_back(this);
+    /* Add to list */
+    mMusicList.push_back(this);
 }
 
-CMusic::~CMusic(void)
+Music::~Music(void)
 {
-	vector<CMusic *>::iterator it;
+    vector<Music *>::iterator it;
 
-	/* Unload */
-	Unload();
+    /* Unload */
+    Unload();
 
-	/* Remove from list */
-	foreach (MusicList, it) {
-		CMusic *Song = *it;
+    /* Remove from list */
+    foreach (mMusicList, it) {
+        Music *song = *it;
 
-		/* Song found */
-		if (Song == this) {
-			MusicList.erase(it);
-			break;
-		}
-	}
+        /* Song found */
+        if (song == this) {
+            mMusicList.erase(it);
+            break;
+        }
+    }
 }
 
-void CMusic::FinishedCB(void)
+void Music::FinishedCB(void)
 {
-	vector<CMusic *>::iterator it;
+    vector<Music *>::iterator it;
 
-	/* Lock mutex */
-	SDL_LockMutex(Mutex);
+    /* Lock mutex */
+    SDL_LockMutex(mpMutex);
 
-	/* Find song */
-	foreach (MusicList, it) {
-		CMusic *Song = *it;
+    /* Find song */
+    foreach (mMusicList, it) {
+        Music *song = *it;
 
-		/* Song found */
-		if (Song->State == MUSIC_PLAYING) {
-			Song->State = MUSIC_STOPPED;
-			break;
-		}
-	}
+        /* Song found */
+        if (song->mState == MUSIC_PLAYING) {
+            song->mState = MUSIC_STOPPED;
+            break;
+        }
+    }
 
-	/* Unlock mutex */
-	SDL_UnlockMutex(Mutex);
+    /* Unlock mutex */
+    SDL_UnlockMutex(mpMutex);
 }
 
-bool CMusic::Load(const char *filename)
+bool Music::Load(const char *filename)
 {
-	/* Unload */
-	Unload();
+    /* Unload */
+    Unload();
 
-	/* Set filepath */
-	Filepath = filename;
+    /* Set filepath */
+    mFilepath = filename;
 
-	/* Load music */
-	Music = Mix_LoadMUS(filename);
+    /* Load music */
+    mpMusic = Mix_LoadMUS(filename);
 
-	return !!Music;
+    return !!mpMusic;
 }
 
-bool CMusic::Load(string filename)
+bool Music::Load(string filename)
 {
-	const char *c = filename.c_str();
+    const char *c = filename.c_str();
 
-	/* Load music */
-	return Load(c);
+    /* Load music */
+    return Load(c);
 }
 
-void CMusic::Unload(void)
+void Music::Unload(void)
 {
-	/* Not loaded */
-	if (!Music)
-		return;
+    /* Not loaded */
+    if (!mpMusic) return;
 
-	/* Lock mutex */
-	SDL_LockMutex(Mutex);
+    /* Lock mutex */
+    SDL_LockMutex(mpMutex);
 
-	/* Stop music */
-	Stop();
+    /* Stop music */
+    Stop();
 
-	/* Free music */
-	Mix_FreeMusic(Music);
+    /* Free music */
+    Mix_FreeMusic(mpMusic);
 
-	/* Reset variables */
-	Music = NULL;
-	Filepath.clear();
+    /* Reset variables */
+    mpMusic = NULL;
+    mFilepath.clear();
 
-	/* Unlock mutex */
-	SDL_UnlockMutex(Mutex);
+    /* Unlock mutex */
+    SDL_UnlockMutex(mpMutex);
 }
 
-bool CMusic::Play(Sint32 loops)
+bool Music::Play(Sint32 loops)
 {
-	Sint32 ret;
+    Sint32 ret;
 
-	/* No music */
-	if (!Music)
-		return false;
+    /* No music */
+    if (!mpMusic) return false;
 
-	/* Check for music */
-	ret = Mix_PlayingMusic();
-	if (ret)
-		return false;
+    /* Check for music */
+    ret = Mix_PlayingMusic();
+    if (ret) return false;
 
-	/* Play music */
-	ret = Mix_PlayMusic(Music, loops);
-	if (ret)
-		return false;
+    /* Play music */
+    ret = Mix_PlayMusic(mpMusic, loops);
+    if (ret) return false;
 
-	/* Set playing state */
-	State = MUSIC_PLAYING;
+    /* Set playing state */
+    mState = MUSIC_PLAYING;
 
-	return true;
+    return true;
 }
 
-void CMusic::Stop(void)
+void Music::Stop(void)
 {
-	/* Music not playing */
-	if (State != MUSIC_PLAYING)
-		return;
+    /* Music not playing */
+    if (mState != MUSIC_PLAYING) return;
 
-	/* Stop music */
-	Mix_HaltMusic();
+    /* Stop music */
+    Mix_HaltMusic();
 
-	/* Set stopped state */
-	State = MUSIC_STOPPED;
+    /* Set stopped state */
+    mState = MUSIC_STOPPED;
 }
 
-void CMusic::Pause(void)
+void Music::Pause(void)
 {
-	/* Music not playing */
-	if (State != MUSIC_PLAYING)
-		return;
+    /* Music not playing */
+    if (mState != MUSIC_PLAYING) return;
 
-	/* Pause music */
-	Mix_PauseMusic();
+    /* Pause music */
+    Mix_PauseMusic();
 
-	/* Set paused state */
-	State = MUSIC_PAUSED;
+    /* Set paused state */
+    mState = MUSIC_PAUSED;
 }
 
-void CMusic::Resume(void)
+void Music::Resume(void)
 {
-	/* Music not paused */
-	if (State != MUSIC_PAUSED)
-		return;
+    /* Music not paused */
+    if (mState != MUSIC_PAUSED)	return;
 
-	/* Resume music */
-	Mix_ResumeMusic();
+    /* Resume music */
+    Mix_ResumeMusic();
 
-	/* Set playing state */
-	State = MUSIC_PLAYING;
+    /* Set playing state */
+    mState = MUSIC_PLAYING;
 }

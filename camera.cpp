@@ -1,75 +1,78 @@
 #include <cmath>
+
 #include <GL/gl.h>
-#include "camera.h"
-#include "level.h"
-#include "video.h"
+
+#include "camera.hpp"
+#include "level.hpp"
+#include "video.hpp"
 
 /* Camera handler */
-CCamera *pCamera = NULL;
+Camera *gpCamera = NULL;
 
 
-CCamera::CCamera(void)
+Camera::Camera(void)
 {
-	/* Initialize variables */
-	Target = NULL;
+    /* Initialize variables */
+    mpTarget = NULL;
 
-	/* Default position */
-	PosX = 0.0;
-	PosY = 0.0;
+    /* Default position */
+    mPosX = 0.0;
+    mPosY = 0.0;
 }
 
-CCamera::~CCamera(void)
+Camera::~Camera(void)
 {
-    if (Target)
-        delete (Target);
+    if (mpTarget) delete (mpTarget);
 }
 
-void CCamera::SetActive(void)
+void Camera::SetActive(void)
 {
-	/* Set active camera */
-	pCamera = this;
+    /* Set active camera */
+    gpCamera = this;
 }
 
-void CCamera::SetTarget(CEntity *Entity)
+void Camera::SetTarget(Entity *entity)
 {
-	/* Set camera target */
-	Target = Entity;
+    /* Set camera target */
+    mpTarget = entity;
 }
 
-void CCamera::Look(void)
+void Camera::Look(void)
 {
-	Sint16 width  = pLevel->GetWidth();
-	Sint16 height = pLevel->GetHeight();
+    Sint16 width  = gpLevel->GetWidth();
+    Sint16 height = gpLevel->GetHeight();
 
-	/* Follow target entity */
-	if (Target) {
-		CRect tRect = Target->GetRect();
-		float  dX, dY;
+    /* Follow target entity */
+    if (mpTarget) {
+        Rect rect = mpTarget->GetRect();
+        float dX;
+        float dY;
 
-		/* Calculate position */
-		dX   = (tRect.GetWidth()  - pVideo->GetWidth())  * 0.5;
-		dY   = (tRect.GetHeight() - pVideo->GetHeight()) * 0.5;
+        /* Calculate position */
+        dX = (rect.GetWidth()  - gpVideo->GetWidth())  * 0.5;
+        dY = (rect.GetHeight() - gpVideo->GetHeight()) * 0.5;
 
-		/* Set position */
-		PosX = tRect.GetX() + dX;
-		PosY = tRect.GetY() + dY;
-	}
+        /* Set position */
+        mPosX = rect.GetX() + dX;
+        mPosY = rect.GetY() + dY;
+    }
 
-	/* Low limit */
-	if (PosX < 0)
-		PosX = 0;
-	if (PosY < 0)
-		PosY = 0;
+    /* Low limit */
+    if (mPosX < 0) mPosX = 0;
+    if (mPosY < 0) mPosY = 0;    
 
-	/* High limit */
-	if ((PosX + pVideo->GetWidth()) > width)
-		PosX = width - pVideo->GetWidth();
-	if ((PosY + pVideo->GetHeight()) > height)
-		PosY = height - pVideo->GetHeight();
+    /* High limit */
+    if ((mPosX + gpVideo->GetWidth()) > width) {
+        mPosX = width - gpVideo->GetWidth();
+    }
 
-	/* Load identity */
-	glLoadIdentity();
+    if ((mPosY + gpVideo->GetHeight()) > height) {
+        mPosY = height - gpVideo->GetHeight();
+    }
 
-	/* Translate to camera position */
-	glTranslatef(-PosX, -PosY, 0.0);
+    /* Load identity */
+    glLoadIdentity();
+
+    /* Translate to camera position */
+    glTranslatef(-mPosX, -mPosY, 0.0);
 }

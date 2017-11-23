@@ -1,133 +1,136 @@
 #include <boost/format.hpp>
-#include "character.h"
-#include "level.h"
+
+#include "character.hpp"
+#include "level.hpp"
 
 using namespace boost;
 
 
-CCharacter::CCharacter(void)
+Character::Character(void)
 {
-	/* Set type */
-	Type = "Character";
+    /* Set type */
+    mType = "Character";
 }
 
-void CCharacter::Reset(void)
+void Character::Reset(void)
 {
-	/* Reset speed */
-	SpeedX = 0.0;
-	SpeedY = 0.0;
+    /* Reset speed */
+    mSpeedX = 0.0;
+    mSpeedY = 0.0;
 
-	/* Reset position */
-	Rect.SetX(StartX);
-	Rect.SetY(StartY);
+    /* Reset position */
+    mRect.SetX(mStartX);
+    mRect.SetY(mStartY);
 }
 
-bool CCharacter::LoadSettings(const char *path)
+bool Character::LoadSettings(const char *path)
 {
-	CScript Script;
-	bool    ret;
+    Script script;
+    bool   ret;
 
-	/* Load entity settings */
-	ret = CEntity::LoadSettings(path);
-	if (!ret)
-		return false;
+    /* Load entity settings */
+    ret = Entity::LoadSettings(path);    
+    if (!ret) return false;
 
-	/* Load script */
-	ret = Script.Load(path);
-	if (!ret)
-		return false;
+    /* Load script */
+    ret = script.Load(path);
+    if (!ret) return false;
 
-	/* Set animations */
-	EntityNumber = Script.GetValue<Uint16>("Entity_Number");
-	Id           = Script.GetValue<Uint16>("Id");
-	
-	if (!State)
-		State = Script.GetValue<Uint16>("State");
-
-	return true;
-}
-
-bool CCharacter::Load(const char *path)
-{
-	bool ret;
-
-	/* Load entity settings */
-	ret = LoadSettings(path);
-	if (!ret)
-		return false;
-	
-	/* Load animation */
-	Animation.Load(Basepath + Sprite, Width, Height);
-	
-	/* Set position */
-	Rect.SetX(StartX);
-	Rect.SetY(StartY);
-	
-	Rect.SetWidth(Width);
-	Rect.SetHeight(Height);
-	
-	/* Reset */
-	Reset();
-	
-	Loaded = true;
-
-	return true;
-}
-
-bool CCharacter::Load(string path)
-{
-	const char *c = path.c_str();
-	
-	/* Load character */
-	return Load(c);
-}
-
-bool CCharacter::Update(void)
-{
-	Sint16 w = pLevel->GetWidth();
-	Sint16 h = pLevel->GetHeight();
-	
-	/* Move character */
-	bool ret = CEntity::Update();
-	if (!ret)
-		return false;
-
-	/* Check limits */
-	if (Rect.GetX() >= w - Width)
-        Rect.SetX(w - Width);
-        
-    if (Rect.GetY() >= h - Height)
-        Rect.SetY(h - Height);
+    /* Set animations */
+    mEntityNumber = script.GetValue<Uint16>("Entity_Number");
+    mId           = script.GetValue<Uint16>("Id");
     
-    if (Rect.GetX() < 0)
-        Rect.SetX(0);
-        
-    if (Rect.GetY() < 0)
-        Rect.SetY(0);
-		
-	return true;
+    if (!mState) {
+        mState = script.GetValue<Uint16>("State");
+    }
+
+    return true;
 }
 
-bool CCharacter::Draw(bool idle)
+bool Character::Load(const char *path)
 {
-	/* Character dead */
-	if (State & ENTITY_DEAD)
-		return false;
-	
-	/* Character idle */
-	if (!State) {
-		idle = true;
-		
-		/* Set stop animation */
-		if (AniMap[ENTITY_STOP])
-			Animation.SetAnimation(AniMap[ENTITY_STOP] - 1);
-	}
-	
-	Animation.Update(idle);
-	
-	bool ret = Animation.Draw(NULL, &Rect);
-	if (!ret)
-		return false;
-	
-	return true;
+    bool ret;
+
+    /* Load entity settings */
+    ret = LoadSettings(path);
+    if (!ret) return false;
+    
+    /* Load animation */
+    mAnimation.Load(mBasepath + mSprite, mWidth, mHeight);
+    
+    /* Set position */
+    mRect.SetX(mStartX);
+    mRect.SetY(mStartY);
+    
+    mRect.SetWidth(mWidth);
+    mRect.SetHeight(mHeight);
+    
+    /* Reset */
+    Reset();
+    
+    mLoaded = true;
+
+    return true;
+}
+
+bool Character::Load(string path)
+{
+    const char *c = path.c_str();
+    
+    /* Load character */
+    return Load(c);
+}
+
+bool Character::Update(void)
+{
+    Sint16 w = gpLevel->GetWidth();
+    Sint16 h = gpLevel->GetHeight();
+    
+    /* Move character */
+    bool ret = Entity::Update();
+    if (!ret) return false;
+
+    /* Check limits */
+    if (mRect.GetX() >= w - mWidth) {
+        mRect.SetX(w - mWidth);    
+    }
+        
+    if (mRect.GetY() >= h - mHeight) {
+        mRect.SetY(h - mHeight);
+    }
+    
+    if (mRect.GetX() < 0) {
+        mRect.SetX(0);
+    }
+        
+    if (mRect.GetY() < 0) {
+        mRect.SetY(0);
+    }
+        
+    return true;
+}
+
+bool Character::Draw(bool idle)
+{
+    /* Character dead */
+    if (mState & ENTITY_DEAD) {
+        return false;
+    }
+    
+    /* Character idle */
+    if (!mState) {
+        idle = true;
+        
+        /* Set stop animation */
+        if (mAniMap[ENTITY_STOP]) {
+            mAnimation.SetAnimation(mAniMap[ENTITY_STOP] - 1);
+        }
+    }
+    
+    mAnimation.Update(idle);
+    
+    bool ret = mAnimation.Draw(NULL, &mRect);
+    if (!ret) return false;
+    
+    return true;
 }

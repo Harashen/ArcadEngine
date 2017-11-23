@@ -1,143 +1,134 @@
 #include <GL/gl.h>
-#include "rect.h"
+
+#include "rect.hpp"
 
 
-CRect::CRect(float x, float y, Sint32 w, Sint32 h)
+Rect::Rect(float x, float y, Sint32 w, Sint32 h)
 {
-	/* Set attributes */
-	Point.SetPoint(x, y);
-	Width  = w;
-	Height = h;
+    /* Set attributes */
+    mPoint.SetPoint(x, y);
+    mWidth  = w;
+    mHeight = h;
 }
 
-bool CRect::Intersection(CRect *Rect, CRect &Result)
-{
-	float Amin, Amax, Bmin, Bmax;
+bool Rect::Intersection(Rect *rect, Rect &result)
+{/* Horizontal intersection */
+    float aMin = mPoint.GetX();
+    float aMax = aMin + mWidth;
+    float bMin = rect->GetX();
+    float bMax = bMin + rect->GetWidth();
 
-	/* Horizontal intersection */
-	Amin = Point.GetX();
-	Amax = Amin + Width;
-	Bmin = Rect->GetX();
-	Bmax = Bmin + Rect->GetWidth();
+    if (bMin > aMin) aMin = bMin;
+    if (bMax < aMax) aMax = bMax;
 
-	if (Bmin > Amin)
-		Amin = Bmin;
-	if (Bmax < Amax)
-		Amax = Bmax;
+    /* No intersection */
+    if (aMin >= aMax) return false;
 
-	/* No intersection */
-	if (Amin >= Amax)
-		return false;
+    result.SetX(aMin);
+    result.SetWidth((Sint32) (aMax - aMin));
 
-	Result.SetX(Amin);
-	Result.SetWidth((Sint32) (Amax - Amin));
+    /* Vertical intersection */
+    aMin = mPoint.GetY();
+    aMax = aMin + mHeight;
+    bMin = rect->GetY();
+    bMax = bMin + rect->GetHeight();
 
-	/* Vertical intersection */
-	Amin = Point.GetY();
-	Amax = Amin + Height;
-	Bmin = Rect->GetY();
-	Bmax = Bmin + Rect->GetHeight();
+    if (bMin > aMin) aMin = bMin;
+    if (bMax < aMax) aMax = bMax;
 
-	if (Bmin > Amin)
-		Amin = Bmin;
-	if (Bmax < Amax)
-		Amax = Bmax;
+    /* No intersection */
+    if (aMin >= aMax) return false;
 
-	/* No intersection */
-	if (Amin >= Amax)
-		return false;
+    result.SetY(aMin);
+    result.SetHeight((Sint32) (aMax - aMin));
 
-	Result.SetY(Amin);
-	Result.SetHeight((Sint32) (Amax - Amin));
-
-	return true;	
+    return true;	
 }
 
-bool CRect::Add(CRect *Rect)
+bool Rect::Add(Rect *rect)
 {
-	float x = Rect->GetX() + Initial.GetX();
-	float y = Rect->GetY() + Initial.GetY();
-	
-	Point.SetPoint(x, y);
-	
-	return true;
+    float x = rect->GetX() + mInitial.GetX();
+    float y = rect->GetY() + mInitial.GetY();
+    
+    mPoint.SetPoint(x, y);
+    
+    return true;
 }
 
-void CRect::Draw(SDL_Color Color, float alpha)
+void Rect::Draw(SDL_Color color, float alpha)
 {
-	/* Enable alpha blending */
-	if (alpha < 1.0)
-		glEnable(GL_BLEND);
+    /* Enable alpha blending */
+    if (alpha < 1.0) glEnable(GL_BLEND);
 
-	/* Set rect color */
-	glColor4f(Color.r, Color.g, Color.b, alpha);
+    /* Set rect color */
+    glColor4f(color.r, color.g, color.b, alpha);
 
-	/* Draw rect */
-	glBegin(GL_QUADS);
-		glVertex2f(Point.GetX(), Point.GetY());
-		glVertex2f(Point.GetX() + Width, Point.GetY());
-		glVertex2f(Point.GetX() + Width, Point.GetY() + Height);
-		glVertex2f(Point.GetX(), Point.GetY() + Height);
-	glEnd();
+    /* Draw rect */
+    glBegin(GL_QUADS);
+    glVertex2f(mPoint.GetX(), mPoint.GetY());
+    glVertex2f(mPoint.GetX() + mWidth, mPoint.GetY());
+    glVertex2f(mPoint.GetX() + mWidth, mPoint.GetY() + mHeight);
+    glVertex2f(mPoint.GetX(), mPoint.GetY() + mHeight);
+    glEnd();
 
-	/* Disable alpha blending */
-	glDisable(GL_BLEND);
+    /* Disable alpha blending */
+    glDisable(GL_BLEND);
 }
 
-void CRect::Set(float x, float y, Sint32 w, Sint32 h)
+void Rect::Set(float x, float y, Sint32 w, Sint32 h)
 {
-    Point.SetPoint(x, y);
+    mPoint.SetPoint(x, y);
     SetWidth(w);
     SetHeight(h);
 }
 
-void CRect::SetX (float value)
+void Rect::SetX (float value)
 {
-	Point.SetX(value);
+    mPoint.SetX(value);
 }
 
-void CRect::SetY(float value)
+void Rect::SetY(float value)
 {
-	Point.SetY(value);
+    mPoint.SetY(value);
 }
 
-void CRect::SetInitialX(float value)
+void Rect::SetInitialX(float value)
 {
-	Initial.SetX(value);
+    mInitial.SetX(value);
 }
 
-void CRect::SetInitialY(float value)
+void Rect::SetInitialY(float value)
 {
-	Initial.SetY(value);
+    mInitial.SetY(value);
 }
 
-void CRect::SetWidth(Sint32 value)
+void Rect::SetWidth(Sint32 value)
 {
-	Width = value;
+    mWidth = value;
 }
 
-void CRect::SetHeight(Sint32 value)
+void Rect::SetHeight(Sint32 value)
 {
-	Height = value;
+    mHeight = value;
 }
 
-float CRect::GetX(void)
+float Rect::GetX(void)
 {
-	return Point.GetX();
+    return mPoint.GetX();
 }
 
-float CRect::GetY(void)
+float Rect::GetY(void)
 {
-	return Point.GetY();
+    return mPoint.GetY();
 }
 
-Sint32 CRect::GetWidth(void)
+Sint32 Rect::GetWidth(void)
 {
-	return Width;
+    return mWidth;
 }
 
-Sint32 CRect::GetHeight(void)
+Sint32 Rect::GetHeight(void)
 {
-	return Height;
+    return mHeight;
 }
 

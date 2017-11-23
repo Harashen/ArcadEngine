@@ -1,226 +1,229 @@
 #include <boost/format.hpp>
 
-#include "level.h"
-#include "player.h"
-#include "script.h"
-#include "storyboard.h"
-#include "utils.h"
+#include "storyboard.hpp"
+#include "log.hpp"
+#include "level.hpp"
+#include "player.hpp"
+#include "script.hpp"
 
 using namespace boost;
 
 
 /* Storyboard handler */
-CStory *pStory = NULL;
+Story *gpStory = NULL;
 
 
-CStory::CStory(void)
+Story::Story(void)
 {
-	/* Initialize variables */
-	Current = 0;
-	Levels  = 0;
-	Score   = 0;
+    /* Initialize variables */
+    mCurrent = 0;
+    mLevels  = 0;
+    mScore   = 0;
 }
 
-CStory::~CStory (void)
+Story::~Story (void)
 {
-    while (!List.empty())
-		List.pop_back();
+    while (!mList.empty()) {
+        mList.pop_back();
+    }
 }
 
-void CStory::SetActive(void)
+void Story::SetActive(void)
 {
-	/* Set active */
-	pStory = this;
+    /* Set active */
+    gpStory = this;
 }
 
-bool CStory::Load(string path)
+bool Story::Load(string path)
 {
-	CScript Script;
+    Script script;
 
-	bool ret;
+    bool ret;
 
-	/* Load script */
-	ret = Script.Load(path + "Storyboard\\storyboard.ini");
-	if (!ret)
-		return false;
-		
-	/* Number of lives */
-	Lives = Script.GetValue<Uint32>("Lives");
+    /* Load script */
+    ret = script.Load(path + "Storyboard\\storyboard.ini");
+    if (!ret) return false;
+        
+    /* Number of lives */
+    mLives = script.GetValue<Uint32>("Lives");
 
-	/* Number of levels */
-	Levels = Script.GetValue<Uint32>("Levels");
-	
-	/* Number of points per life */
-	Points = Script.GetValue<Uint32>("Points");
+    /* Number of levels */
+    mLevels = script.GetValue<Uint32>("Levels");
+    
+    /* Number of points per life */
+    mPoints = script.GetValue<Uint32>("Points");
 
-	/* Get levels */
-	for (Uint32 i = 0; i < Levels; i++) {
-		string name, prefix;
+    /* Get levels */
+    for (Uint32 i = 0; i < mLevels; i++) {
+        string name, prefix;
 
-		/* Generate prefix */
-		prefix = str(format("Level[%d].") % i);
-		
-		/* Generate name */
-		name = path + "Storyboard\\";
+        /* Generate prefix */
+        prefix = str(format("Level[%d].") % i);
+        
+        /* Generate name */
+        name = path + "Storyboard\\";
 
-		/* Get level name */
-		name += Script.GetString(prefix + "Path");
+        /* Get level name */
+        name += script.GetString(prefix + "Path");
 
-		/* Push level */
-		List.push_back(name);
-	}
-	
-	/* Load HighScore */
-	LoadHighScore(path);
+        /* Push level */
+        mList.push_back(name);
+    }
+    
+    /* Load HighScore */
+    LoadHighScore(path);
 
-	return true;
+    return true;
 }
 
-bool CStory::LoadHighScore(string path)
+bool Story::LoadHighScore(string path)
 {
     string   line;
     ifstream File;
     
-	/* Generate name */
+    /* Generate name */
     path += "Storyboard\\highscore.txt";
     const char *name = path.c_str();
     
-	/* Open file */
+    /* Open file */
     File.open(name);
-    if (!File.is_open())
-        return false;
+    if (!File.is_open()) return false;
     
     getline(File, line);
     RemoveSpaces(line);
     
-    Score = lexical_cast<Uint32>(line);
+    mScore = lexical_cast<Uint32>(line);
     
     return true;
 }
 
-bool CStory::SaveHighScore(string path)
+bool Story::SaveHighScore(string path)
 {
     ofstream File;
     
-	/* New HighScore */
-    if (this->Score > pPlayer->GetScore())
+    /* New HighScore */
+    if (mScore > gpPlayer->GetScore()) {
         return false;
+    }
     
-    this->Score = pPlayer->GetScore();
+    mScore = gpPlayer->GetScore();
     
-	/* Generate name */
+    /* Generate name */
     path += "Storyboard\\highscore.txt";
     const char *name = path.c_str();
     
-	/* Open file */
+    /* Open file */
     File.open(name, ios::out | ios::trunc);
-    if (!File.is_open() )
-        return false;
+    if (!File.is_open()) return false;
         
-    File << this->Score;
+    File << mScore;
     
     return true;
 }
 
-bool CStory::PrevLevel(void)
+bool Story::PrevLevel(void)
 {
-	/* No previous */
-	if (Current == 0)
-		return false;
-	
-	/* Set previous */
-	Current--;
+    /* No previous */
+    if (mCurrent == 0) return false;
+    
+    /* Set previous */
+    mCurrent--;
 
-	return true;
+    return true;
 }
 
-bool CStory::NextLevel(void)
+bool Story::NextLevel(void)
 {
-	/* No next */
-	if (Current >= Levels - 1)
-		return false;
+    /* No next */
+    if (mCurrent >= mLevels - 1) {
+        return false;
+    }
 
-	/* Set next */
-	Current++;
+    /* Set next */
+    mCurrent++;
 
-	return true;
+    return true;
 }
 
-bool CStory::End(void)
+bool Story::End(void)
 {
-	/* Check if ended */
-	return (Current >= Levels);
+    /* Check if ended */
+    return (mCurrent >= mLevels);
 }
 
-bool CStory::LoadLevel(void)
+bool Story::LoadLevel(void)
 {
-	/* No level/player */
-	if (!pLevel || !pPlayer)
-		return false;
+    /* No level/player */
+    if (!gpLevel || !gpPlayer) {
+        *gpLog << "[STORYBOARD]  ERROR: Level or Player not loaded!" << endl;
+        return false;
+    }
 
-	/* Wrong level */
-	if (Current < 0 || Current >= Levels)
-		return false;
+    /* Wrong level */
+    if (mCurrent < 0 || mCurrent >= mLevels) {
+        *gpLog << "[STORYBOARD]  ERROR: Wrong level number (" << mCurrent << ")!" << endl;
+        *gpLog << "[STORYBOARD]  ERROR: or Wrong number of levels (" << mLevels << ")!" << endl;
 
-	/* Get level */
-	string name = List[Current];
+        return false;
+    }
 
-	/* Load level */
-	bool ret = pLevel->Load(name);
-	if (!ret)
-		return false;
+    /* Get level */
+    string name = mList[mCurrent];
 
-	/* Set player position */
-	pPlayer->SetStart(pLevel->GetPlayerX(),	pLevel->GetPlayerY());
+    /* Load level */
+    bool ret = gpLevel->Load(name);
+    if (!ret) return false;
 
-	/* Reset player */
-	pPlayer->ResetRect();
+    /* Set player position */
+    gpPlayer->SetStart(gpLevel->GetPlayerX(), gpLevel->GetPlayerY());
 
-	return true;
+    /* Reset player */
+    gpPlayer->ResetRect();
+
+    return true;
 }
 
-void CStory::UnloadLevel(void)
+void Story::UnloadLevel(void)
 {
-	/* Unload level */
-	if (pLevel)
-		pLevel->Unload();
+    /* Unload level */
+    if (gpLevel) gpLevel->Unload();
 }
 
-void CStory::SetLevels(Uint32 value)
+void Story::SetLevels(Uint32 value)
 {
-    Levels = value;
+    mLevels = value;
 }
 
-void CStory::SetCurrent(Uint32 value)
+void Story::SetCurrent(Uint32 value)
 {
-    Current = value;
+    mCurrent = value;
 }
 
-void CStory::SetLives (Uint16 credits)
+void Story::SetLives (Uint16 credits)
 {
-	/* Initial lives */
-	Uint32 lives = pPlayer->GetLives() + Lives * credits;
+    /* Initial lives */
+    Uint32 lives = gpPlayer->GetLives() + mLives * credits;
 
-	/* Set initial player lives */
-    pPlayer->SetLives(lives);
+    /* Set initial player lives */
+    gpPlayer->SetLives(lives);
 }
 
-Uint32 CStory::GetLevels(void)
+Uint32 Story::GetLevels(void)
 {
-    return Levels;
+    return mLevels;
 }
 
-Uint32 CStory::GetCurrent(void)
+Uint32 Story::GetCurrent(void)
 {
-    return Current;
+    return mCurrent;
 }
 
-Uint32 CStory::GetPoints(void)
+Uint32 Story::GetPoints(void)
 {
-    return Points;
+    return mPoints;
 }
 
-Uint32 CStory::GetHighscore(void)
+Uint32 Story::GetHighscore(void)
 {
-    return Score;
+    return mScore;
 }

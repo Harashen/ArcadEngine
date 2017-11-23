@@ -1,46 +1,43 @@
-#include "collision.h"
-#include "enemy.h"
-#include "player.h"
+#include "enemy.hpp"
+#include "collision.hpp"
+#include "player.hpp"
 
 
-CEnemy::CEnemy(void)
+Enemy::Enemy(void)
 {
-	/* Set type */
-	Type = "Enemy";
+    /* Set type */
+    mType = "Enemy";
 }
 
-CEnemy::~CEnemy(void)
+Enemy::~Enemy(void)
 {
-	/* Stop sound */
-	Sound.Stop();
+    /* Stop sound */
+    mSound.Stop();
 }
 
-void CEnemy::Collision(CEntity *Entity, Uint32 &col)
+void Enemy::Collision(Entity *entity, Uint32 &col)
 {
-	/* Enemy dead */
-	if (State & ENTITY_DEAD)
-		return;
-		
-	string type = Entity->GetType();
+    /* Enemy dead */
+    if (mState & ENTITY_DEAD) return;
+        
+    string type = entity->GetType();
 
-	/* Default handler */
-	CEntity::Collision(Entity, col);
+    /* Default handler */
+    Entity::Collision(entity, col);
 
-	/* Collision with bullet */
-	if (!type.compare("Weapon")) {
-		/* Kill enemy */
-		Sound.Play(0);
-		Kill();
-		
-		/* Set player points */
-		pPlayer->SetScore(this->Points);
-	}
+    /* Collision with bullet */
+    if (!type.compare("Weapon")) {
+        /* Kill enemy */
+        mSound.Play(0);
+        Kill();
+        
+        /* Set player points */
+        gpPlayer->SetScore(mPoints);
+    }
 
-	/* Collision with item */
-	if (!type.compare("Item"))
-		col = 0;
-		
-	/* Collision with enemy */
-	if (!type.compare("Enemy"))
-		col = 0;
+    /* Collision with item */
+    if (!type.compare("Item")) col = 0;
+        
+    /* Collision with enemy */
+    if (!type.compare("Enemy")) col = 0;
 }

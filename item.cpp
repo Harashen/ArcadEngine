@@ -1,23 +1,24 @@
-#include "collision.h"
-#include "item.h"
+#include "item.hpp"
+#include "collision.hpp"
 
 
-CItem::CItem(void)
+Item::Item(void)
 {
-	/* Set type */
-	Type = "Item";
-	
-	Collidable = true;
+    /* Set type */
+    mType = "Item";
+    
+    mCollidable = true;
 }
 
-void CItem::Collision(CEntity *Entity, Uint32 &col)
+void Item::Collision(Entity *entity, Uint32 &col)
 {
-	string type = Entity->GetType();
+    string type = entity->GetType();
 
-	/* Default handler */
-	CEntity::Collision(Entity, col);
+    /* Default handler */
+    Entity::Collision(entity, col);
 
-	/* Collision with player */
-	if (!type.compare("Player"))
-		Kill();
+    /* Collision with player */
+    if (!type.compare("Player")) {
+        Kill();
+    }
 }

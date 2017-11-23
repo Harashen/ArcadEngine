@@ -1,98 +1,87 @@
 #include <algorithm>
 #include <cmath>
 
-#include "point.h"
+#include "point.hpp"
 
 using namespace std;
 
-CPoint::CPoint (void)
+Point::Point (void)
 {
-    X = -1;
-    Y = -1;
+    mX = -1;
+    mY = -1;
 }
 
-CPoint::CPoint (float x, float y)
+Point::Point (float x, float y)
 {
-    X = x;
-    Y = y;
+    mX = x;
+    mY = y;
 }
 
-void CPoint::SetX(float x)
+void Point::SetX(float x)
 {
-    X = x;
+    mX = x;
 }
 
-void CPoint::SetY(float y)
+void Point::SetY(float y)
 {
-    Y = y;
+    mY = y;
 }
 
-void CPoint::SetPoint(CPoint Point)
+void Point::SetPoint(Point point)
 {
-    float x, y;
+    float x = point.GetX();
+    float y = point.GetY();
     
-    x = Point.GetX();
-    y = Point.GetY();
+    SetPoint(x, y);
+}
+
+void Point::SetPoint(float x, float y)
+{
+    SetX(x);
+    SetY(y);
+}
+
+float Point::GetX (void)
+{
+    return mX;
+}
+
+float Point::GetY (void)
+{
+    return mY;
+}
+
+bool Point::EqualPoints(Point point)
+{
+    float x = point.GetX();
+    float y = point.GetY();
     
-    SetPoint (x, y);
-}
-
-void CPoint::SetPoint(float x, float y)
-{
-    SetX (x);
-    SetY (y);
-}
-
-float CPoint::GetX (void)
-{
-    return X;
-}
-
-float CPoint::GetY (void)
-{
-    return Y;
-}
-
-bool CPoint::EqualPoints(CPoint Point)
-{
-    float x, y;
-    
-    x = Point.GetX();
-    y = Point.GetY();
-    
-    if ( (x == X) && (y == Y) )
-        return true;
+    if (x == mX && y == mY) return true;
     
     return false;
 }
 
-float CPoint::Distance(CPoint Point)
-{
-    float dist;
-    
-    float x, y;
-    
-    x = DistanceX(Point.GetX() );
-    y = DistanceY(Point.GetY() );
-    
+float Point::Distance(Point point)
+{  
+    float x = DistanceX(point.GetX());
+    float y = DistanceY(point.GetY());
+
     y = abs(y);
     x = abs(x);
     
-    dist = max(y, x);
-
-    return dist;
+    return max(y, x);
 }
 
-float CPoint::DistanceX(float x)
+float Point::DistanceX(float x)
 {    
-    x -= X;
+    x -= mX;
 
     return x;
 }
 
-float CPoint::DistanceY(float y)
+float Point::DistanceY(float y)
 {    
-    y -= Y;
+    y -= mY;
 
     return y;
 }

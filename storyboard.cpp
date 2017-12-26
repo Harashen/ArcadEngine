@@ -160,7 +160,7 @@ bool Story::LoadLevel(void)
     }
 
     /* Wrong level */
-    if (mCurrent < 0 || mCurrent >= mLevels) {
+    if (mCurrent >= mLevels) {
         *gpLog << "[STORYBOARD]  ERROR: Wrong level number (" << mCurrent << ")!" << endl;
         *gpLog << "[STORYBOARD]  ERROR: or Wrong number of levels (" << mLevels << ")!" << endl;
 

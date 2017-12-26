@@ -12,8 +12,8 @@ INCLUDE		= $(foreach dir, $(INCDIRS), -I$(dir))
 LIBS		= $(foreach dir, $(LIBDIRS), -L$(dir))
 
 # C/C++ flags
-CFLAGS		= -O3 -Wall -std=c99 $(INCLUDE)
-CXXFLAGS	= -O3 -Wall $(INCLUDE)
+CFLAGS		= -O3 -Wall -Wextra -std=c99 $(INCLUDE)
+CXXFLAGS	= -O3 -Wall -Wextra -std=c++17 $(INCLUDE)
 
 # Linker flags
 LDFLAGS		= $(LIBS) -lftgl -lpng -lopengl32 -lglu32 -lmingw32 -lSDLmain -lSDL_image -lSDL_mixer -lSDL

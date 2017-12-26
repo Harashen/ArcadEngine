@@ -138,9 +138,9 @@ SDL_Color Script::GetColor(const char *key)
     return GetColor(k);
 }
     
-SDL_Color Script::GetColor (string key)
+SDL_Color Script::GetColor(string key)
 {    
-    SDL_Color color = {0, 0, 0};
+    SDL_Color color = {0, 0, 0, 0};
     
     color.r = GetValue<Uint16>(key + ".Red");
     color.g = GetValue<Uint16>(key + ".Green");

@@ -4,9 +4,9 @@
 #include <SDL/SDL.h>
 
 //! Timer constants.
-#define MSEC_PER_SEC	1000ULL
-#define USEC_PER_SEC	1000000ULL
-#define NSEC_PER_SEC	1000000000ULL
+const Uint64 MSEC_PER_SEC = 1000ULL;
+const Uint64 USEC_PER_SEC = 1000000ULL;
+const Uint64 NSEC_PER_SEC = 1000000000ULL;
 
 
 /*!
